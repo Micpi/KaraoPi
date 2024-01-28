@@ -5,7 +5,7 @@ if [ $REPLY = "y" ]
  then
 
 ## setup stuff
-
+echo cat /etc/os-release | grep ^ID=debian
 if [[$(cat /etc/os-release | grep ^ID=debian) != "" ]]; then
   echo "Client is a Debian-based system. Installing binaries"; 
   echo
