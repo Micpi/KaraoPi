@@ -8,7 +8,7 @@ if [ $REPLY = "y" ]
 cat /etc/os-release | grep ^ID=debian
 
 
-if [$(grep -ic "ID=debian" /etc/os-release)]; then
+if [$(grep "ID=debian" /etc/os-release)]; then
   echo "Client is a Debian-based system. Installing binaries"; 
   echo
   echo "*** RUNNING APT-GET UPDATE ***"
