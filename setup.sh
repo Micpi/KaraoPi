@@ -1,6 +1,6 @@
 #!/bin/bash
 
-read -p "Are you sure you want to setup PiKaraoke? (y/n): " REPLY
+read -p "Are you sure you want to setup KaraoPi? (y/n): " REPLY
 if [ $REPLY = "y" ]
  then
 
@@ -30,12 +30,12 @@ source .venv/bin/activate
 
 echo
 echo "*** INSTALLING PYTHON DEPENDENCIES ***"
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --break-system-packages
 if [ $? -ne 0 ]; then echo "ERROR: Python requirements.txt installation failed with error code: $?"; exit 1; fi
 
 echo
 echo "*** DONE ***"
-echo "Run PiKaraoke with: ./pikaraoke.sh <args>"
+echo "Run KaraoPi with: ./KaraoPi.sh <args>"
 echo
 
 # end setup stuff
