@@ -125,6 +125,7 @@ class Karaoke:
     hide overlay: {self.hide_overlay}
 """)
         # Generate connection URL and QR code, 
+        logging.debug("Platform: " + self.platform)
         if self.platform == "raspberry_pi":
             #retry in case pi is still starting up
             # and doesn't have an IP yet (occurs when launched from /etc/rc.local)
@@ -483,7 +484,7 @@ class Karaoke:
                 return True
         return False
 
-    def enqueue(self, song_path, user="Pikaraoke", semitones=0, add_to_front=False):
+    def enqueue(self, song_path, user="KaraoPi", semitones=0, add_to_front=False):
         if (self.is_song_in_queue(song_path)):
             logging.warn("Song is already in queue, will not add: " + song_path)   
             return False

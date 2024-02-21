@@ -5,11 +5,10 @@ if [ $REPLY = "y" ]
  then
 
 ## setup stuff
-cat /etc/os-release | grep ^ID=debian
 
+# MP Add
 
-if [$(grep -i "debian" /etc/os-release)]; then
-  echo "Client is a Debian-based system. Installing binaries"; 
+echo "Client is a Debian-based system. Installing binaries"; 
   echo
   echo "*** RUNNING APT-GET UPDATE ***"
   sudo apt-get update --allow-releaseinfo-change
@@ -21,14 +20,29 @@ if [$(grep -i "debian" /etc/os-release)]; then
   sudo apt-get install chromium-browser -y
   sudo apt-get install chromium-chromedriver -y
   if [ $? -ne 0 ]; then echo "ERROR: Binary dependency installation failed with error code: $?"; exit 1; fi
-else  
- echo "Client is not Debian-based. Skipping binary installation. Please install ffmpeg and chrome manually."; 
-fi
+
+
+# if [[ $(cat /etc/os-release | grep ^ID= | grep -i 'debian\|raspbian') != "" ]]; then
+#   echo "Client is a Debian-based system. Installing binaries"; 
+#   echo
+#   echo "*** RUNNING APT-GET UPDATE ***"
+#   sudo apt-get update --allow-releaseinfo-change
+#   if [ $? -ne 0 ]; then echo "ERROR: 'apt-get update' failed with error code: $?"; exit 1; fi
+
+#   echo
+#   echo "*** INSTALLING REQUIRED BINARIES ***"
+#   sudo apt-get install ffmpeg -y
+#   sudo apt-get install chromium-browser -y
+#   sudo apt-get install chromium-chromedriver -y
+#   if [ $? -ne 0 ]; then echo "ERROR: Binary dependency installation failed with error code: $?"; exit 1; fi
+# else  
+#  echo "Client is not Debian-based. Skipping binary installation. Please install ffmpeg and chrome manually."; 
+# fi
 
 echo
 echo "*** CREATING PYTHON VIRTUAL ENVIRONMENT ***"
-python3 -m venv .venv
-source .venv/bin/activate
+sudo python3 -m venv .venv
+. .venv/bin/activate
 
 echo
 echo "*** INSTALLING PYTHON DEPENDENCIES ***"
@@ -39,6 +53,13 @@ echo
 echo "*** DONE ***"
 echo "Run KaraoPi with: ./KaraoPi.sh <args>"
 echo
+
+# echo
+# echo "*** CONFIGURE AUTO START ***"
+# mkdir /home/pi/KaraoPi/autostart
+
+# sudo printf '[Desktop Entry]\nType=Application\nName=KaraoPi\nExec=/home/pi/KaraoPi/KaraoPi.sh'  >> KaraoPi.desktop
+
 
 # end setup stuff
 
