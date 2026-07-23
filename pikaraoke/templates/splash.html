@@ -9,6 +9,12 @@
 />
 <script src="{{ url_for('static', filename='js/subtitles-octopus.js') }}"></script>
 <script>
+  // The first Raspberry Pi kiosk navigation is only a Chromium warm-up pass.
+  // Apply the cover in the head, before the body can paint, to prevent flashes.
+  if (new URLSearchParams(window.location.search).has("kiosk_boot")) {
+    document.documentElement.classList.add("kiosk-boot-warmup");
+  }
+
   // Use this config object to pass data from the jinja2 template to the splash.js code
   const PikaraokeConfig = {
     hasBgVideo: {{ has_bg_video | tojson }},
@@ -26,6 +32,23 @@
     scorePhrasesUrl: "{{ url_for('splash.get_score_phrases') }}",
   };
 </script>
+<style>
+  html.kiosk-boot-warmup,
+  html.kiosk-boot-warmup body {
+    background: #000 !important;
+  }
+  html.kiosk-boot-warmup body {
+    visibility: hidden !important;
+  }
+  html.kiosk-boot-warmup::after {
+    content: "";
+    position: fixed;
+    z-index: 2147483647;
+    inset: 0;
+    display: block;
+    background: #000;
+  }
+</style>
 <script src="{{ url_for('static', filename='js/splash.js', v=asset_version) }}"></script>
 {% endblock %} {% block body %}
 <div id="top-container" class="overlay">

@@ -33,7 +33,7 @@ let splashRecoveryScheduled = false;
 
 const scheduleKioskBootReload = () => {
   const url = new URL(window.location.href);
-  if (!url.searchParams.has("kiosk_boot")) return;
+  if (!url.searchParams.has("kiosk_boot")) return false;
 
   // Chromium on Raspberry Pi occasionally initializes its video compositor
   // as a black/white surface on the first kiosk navigation. Reload once after
@@ -43,6 +43,7 @@ const scheduleKioskBootReload = () => {
   setTimeout(() => {
     window.location.replace(url.pathname + url.search + url.hash);
   }, 5000);
+  return true;
 };
 
 const recoverSplash = (reason) => {
@@ -815,7 +816,9 @@ const setupUIScaling = () => {
 // Document ready procedures
 
 $(function () {
-  scheduleKioskBootReload();
+  // During the hidden warm-up pass, do not start audio/video or UI effects.
+  // Chromium only initializes its renderer, then reloads into the real splash.
+  if (scheduleKioskBootReload()) return;
   // Setup various features and listeners
   setupUIScaling();
   if (PikaraokeConfig.showSplashClock) startClock();
