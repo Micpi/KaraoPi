@@ -49,6 +49,12 @@
 
 				changePreferences(pref, val);
 			})
+			$(".reset-color-pref").click(function(e) {
+				e.preventDefault();
+				let pref = $(this).attr("data-pref");
+				changePreferences(pref, "");
+				location.reload();
+			})
 
 			function changePreferences(pref, val) {
 				$.get("{{ url_for('preferences.change_preferences') }}", {
@@ -454,6 +460,20 @@
 					</div>
 
 					<div class="user-preference-container is-align-items-center">
+						<div class="select">
+							<select id="pref-screensaver-style" class="user-preference-input" data-pref="screensaver_style" data-start-value="{{ screensaver_style }}">
+								<option value="bounce" {% if screensaver_style == "bounce" %}selected{% endif %}>{% trans %}Bounce (DVD-style){% endtrans %}</option>
+								<option value="slide" {% if screensaver_style == "slide" %}selected{% endif %}>{% trans %}Slide{% endtrans %}</option>
+								<option value="float" {% if screensaver_style == "float" %}selected{% endif %}>{% trans %}Float{% endtrans %}</option>
+								<option value="pulse" {% if screensaver_style == "pulse" %}selected{% endif %}>{% trans %}Pulse{% endtrans %}</option>
+							</select>
+						</div>
+						<label class="label" for="pref-screensaver-style">
+							{# MSG: Label for the screensaver movement style dropdown. #} {% trans %}Screensaver logo movement style{% endtrans %}
+						</label>
+					</div>
+
+					<div class="user-preference-container is-align-items-center">
 						<input id="pref-splash-delay" class="user-preference-input input" type="number" min="0" max="99" data-pref="splash_delay" data-start-value="{{ splash_delay }}" value="{{ splash_delay }}" />
 						<label class="label" for="pref-splash-delay">
 							{# MSG: Numberbox label for setting the delay before playing the next song #} {% trans %}The delay in seconds before starting the next song{% endtrans %}
@@ -814,10 +834,26 @@
 						<label class="label">{% trans %}Accent color{% endtrans %}</label>
 						<input id="pref-theme-secondary" class="user-preference-input" type="color" data-pref="theme_secondary_color" data-start-value="{{ theme_secondary_color }}" value="{{ theme_secondary_color }}" />
 					</div>
+					<div class="field">
+						{# MSG: Label for the page background color picker. #}
+						<label class="label">{% trans %}Background color{% endtrans %}</label>
+						<input id="pref-theme-background" class="user-preference-input" type="color" data-pref="theme_background_color" data-start-value="{{ theme_background_color }}" value="{{ theme_background_color or '#181a1b' }}" />
+						<a class="reset-color-pref is-size-7" data-pref="theme_background_color" href="#">{% trans %}Reset{% endtrans %}</a>
+					</div>
+					<div class="field">
+						{# MSG: Label for the navbar color picker. #}
+						<label class="label">{% trans %}Navbar color{% endtrans %}</label>
+						<input id="pref-theme-navbar" class="user-preference-input" type="color" data-pref="theme_navbar_color" data-start-value="{{ theme_navbar_color }}" value="{{ theme_navbar_color or '#181a1b' }}" />
+						<a class="reset-color-pref is-size-7" data-pref="theme_navbar_color" href="#">{% trans %}Reset{% endtrans %}</a>
+					</div>
 					<p class="is-size-7 has-text-grey">
 						{# MSG: Help text explaining that theme color changes need a page refresh. #}
 						{% trans %}Reload the page to see color changes take full effect.{% endtrans %}
 					</p>
+					<a id="reload-splash-link" class="button is-small is-primary is-inverted" href="{{ url_for('admin.reload_splash') }}">
+						{# MSG: Button to force the splash screen to reload so appearance changes apply immediately. #}
+						{% trans %}Reload splash screen now{% endtrans %}
+					</a>
 				</div>
 			</div>
 		</div>
@@ -835,8 +871,10 @@
 						<div class="select">
 							<select id="pref-qr-position" class="user-preference-input" data-pref="qr_code_position" data-start-value="{{ qr_code_position }}">
 								<option value="bottom-left" {% if qr_code_position == "bottom-left" %}selected{% endif %}>{% trans %}Bottom left{% endtrans %}</option>
+								<option value="bottom-center" {% if qr_code_position == "bottom-center" %}selected{% endif %}>{% trans %}Bottom center{% endtrans %}</option>
 								<option value="bottom-right" {% if qr_code_position == "bottom-right" %}selected{% endif %}>{% trans %}Bottom right{% endtrans %}</option>
 								<option value="top-left" {% if qr_code_position == "top-left" %}selected{% endif %}>{% trans %}Top left{% endtrans %}</option>
+								<option value="top-center" {% if qr_code_position == "top-center" %}selected{% endif %}>{% trans %}Top center{% endtrans %}</option>
 								<option value="top-right" {% if qr_code_position == "top-right" %}selected{% endif %}>{% trans %}Top right{% endtrans %}</option>
 								<option value="center" {% if qr_code_position == "center" %}selected{% endif %}>{% trans %}Center{% endtrans %}</option>
 							</select>

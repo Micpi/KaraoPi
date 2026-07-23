@@ -7,6 +7,7 @@ import flask_babel
 from flask import flash, jsonify, redirect, request, send_file, url_for
 from flask_smorest import Blueprint
 
+from pikaraoke.lib.boot_splash import update_boot_splash_image
 from pikaraoke.lib.current_app import broadcast_event, get_karaoke_instance, is_admin
 from pikaraoke.lib.get_platform import get_data_directory
 
@@ -69,6 +70,7 @@ def upload_logo():
 
     k.preferences.set("custom_logo_path", destination)
     k.generate_qr_code()  # in case the QR code logo is set to reuse the custom logo
+    update_boot_splash_image(destination)
     broadcast_event("preferences_update", {"key": "custom_logo_path", "value": destination})
     # MSG: Message shown after successfully uploading a custom logo.
     flash(_("Logo updated successfully"), "is-success")
@@ -92,6 +94,7 @@ def reset_logo():
 
     k.preferences.set("custom_logo_path", "")
     k.generate_qr_code()
+    update_boot_splash_image(None)
     broadcast_event("preferences_update", {"key": "custom_logo_path", "value": ""})
     # MSG: Message shown after resetting to the default logo.
     flash(_("Logo reset to default"), "is-success")

@@ -105,6 +105,7 @@ def info():
         qr_code_fill_color=k.preferences.get_or_default("qr_code_fill_color"),
         qr_code_back_color=k.preferences.get_or_default("qr_code_back_color"),
         qr_code_logo=k.preferences.get_or_default("qr_code_logo"),
+        screensaver_style=k.preferences.get_or_default("screensaver_style"),
     )
 
 

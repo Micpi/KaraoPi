@@ -165,6 +165,8 @@ def inject_theme_config() -> dict[str, str]:
     return {
         "theme_primary_color": k.preferences.get_or_default("theme_primary_color"),
         "theme_secondary_color": k.preferences.get_or_default("theme_secondary_color"),
+        "theme_background_color": k.preferences.get_or_default("theme_background_color"),
+        "theme_navbar_color": k.preferences.get_or_default("theme_navbar_color"),
     }
 
 
@@ -287,6 +289,12 @@ def main() -> None:
     # expose karaoke object to the flask app
     with app.app_context():
         app.config["KARAOKE_INSTANCE"] = k
+
+    # Ensure a boot splash image exists from the very first run (kept in sync with
+    # the logo afterwards via pikaraoke/routes/images.py upload/reset routes).
+    from pikaraoke.lib.boot_splash import update_boot_splash_image
+
+    update_boot_splash_image(k.preferences.get_or_default("custom_logo_path") or None)
 
     # Wire download events to SocketIO broadcasts with app context
     from pikaraoke.lib.current_app import broadcast_event

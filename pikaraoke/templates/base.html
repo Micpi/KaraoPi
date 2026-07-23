@@ -45,6 +45,16 @@
     .button.is-warning:not(.is-inverted):not(.is-outlined) {
       color: var(--karaopi-secondary) !important;
     }
+    {% if theme_background_color %}
+    html, body {
+      background-color: {{ theme_background_color }} !important;
+    }
+    {% endif %}
+    {% if theme_navbar_color %}
+    .navbar {
+      background-color: {{ theme_navbar_color }} !important;
+    }
+    {% endif %}
   </style>
 
   <script>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -38,6 +39,31 @@ class Browser:
         self.browser_process: subprocess.Popen | None = None
         self.browser_profile_dir = os.path.join(get_data_directory(), "browser_profile")
         self.splash_url = f"{self.karaoke.url}/splash"
+
+    def _get_screen_resolution(self) -> str | None:
+        """Detect the primary display resolution via xrandr (Linux/X11 only).
+
+        Returns a "WIDTHxHEIGHT" string suitable for --window-size, or None if
+        detection isn't possible (non-Linux, no X server, xrandr missing, etc).
+        """
+        if not is_linux():
+            return None
+        try:
+            output = subprocess.run(
+                ["xrandr", "--current"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            ).stdout
+        except Exception:
+            return None
+
+        for line in output.splitlines():
+            if " connected" in line:
+                match = re.search(r"(\d+)x(\d+)\+\d+\+\d+", line)
+                if match:
+                    return f"{match.group(1)},{match.group(2)}"
+        return None
 
     def launch_splash_screen(self) -> subprocess.Popen | None:
         """Launch the browser with the splash screen in kiosk mode.
@@ -115,6 +141,13 @@ class Browser:
                 cmd.append(f"--app={self.splash_url}")
             else:
                 cmd.append("--kiosk")
+                cmd.append("--start-fullscreen")
+                # Reinforce true fullscreen sizing: on some X11 setups (e.g. no/slow
+                # window manager), --kiosk alone can leave Chromium sized to a
+                # default (often half-screen) window instead of the full display.
+                detected_resolution = self._get_screen_resolution()
+                if detected_resolution:
+                    cmd.append(f"--window-size={detected_resolution}")
 
             # Flags to bypass interactions and errors
             cmd.extend(

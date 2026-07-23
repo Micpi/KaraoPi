@@ -18,16 +18,31 @@ body {
   position: absolute;
   left: 0px;
   top: 0px;
-  height: 200px;
-  width: 420px;
+  height: auto;
+  width: 320px;
+  max-width: 30vw;
   z-index: 11;
-  border-radius: 10px;
-  display: flex;
-  justify-content: right;
-  align-items: flex-end;
-  padding: 10px;
-  background-image: var(--pikaraoke-logo-url);
-  background-repeat: no-repeat;
-  background-size: 300px;
-  background-position: contain;
+  filter: drop-shadow(0 0 25px rgba(0, 0, 0, 0.6));
+}
+
+/* "pulse" style: logo stays centered and gently scales in/out */
+#screensaver[data-style="pulse"] #dvd {
+  top: 50% !important;
+  left: 50% !important;
+  animation: karaopi-pulse 3s ease-in-out infinite;
+}
+
+@keyframes karaopi-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+/* "float" style: logo gently drifts, handled via JS positioning + this transition
+   for a smooth glide between position updates. */
+#screensaver[data-style="float"] #dvd {
+  transition: left 4s ease-in-out, top 4s ease-in-out;
 }

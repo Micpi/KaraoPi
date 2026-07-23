@@ -632,6 +632,7 @@ const setupSocketEvents = () => {
   socket.on("preferences_update", applyPreferenceUpdate);
   socket.on("preferences_reset", applyPreferencesReset);
   socket.on("score_phrases_update", (phrases) => { scoreReviews = phrases; });
+  socket.on("force_reload_splash", () => { location.reload(); });
 
   socket.on("playback_position", (position) => {
     if (!isMaster) {

@@ -14,7 +14,12 @@ from marshmallow import Schema, fields
 
 from pikaraoke import VERSION
 from pikaraoke.karaoke import Karaoke
-from pikaraoke.lib.current_app import get_admin_password, get_karaoke_instance, is_admin
+from pikaraoke.lib.current_app import (
+    broadcast_event,
+    get_admin_password,
+    get_karaoke_instance,
+    is_admin,
+)
 from pikaraoke.lib.karaopi_release import AppUpdateError, start_background_update
 from pikaraoke.lib.youtube_dl import get_youtubedl_version, upgrade_youtubedl
 
@@ -101,6 +106,21 @@ def update_app():
     th = threading.Thread(target=delayed_halt, args=[0, k])
     th.start()
     return redirect(url_for("home.home"))
+
+
+@admin_bp.route("/reload_splash")
+def reload_splash():
+    """Force any connected splash screen(s) to reload, so appearance changes
+    (theme colors, logo, QR code) that don't apply live take effect immediately."""
+    if not is_admin():
+        # MSG: Message shown after trying to reload the splash screen without admin permissions.
+        flash(_("You don't have permission to reload the splash screen"), "is-danger")
+        return redirect(url_for("info.info"))
+
+    broadcast_event("force_reload_splash")
+    # MSG: Message shown after requesting a splash screen reload.
+    flash(_("Reloading the splash screen..."), "is-success")
+    return redirect(url_for("info.info"))
 
 
 @admin_bp.route("/library_stats")

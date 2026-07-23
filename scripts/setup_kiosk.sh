@@ -179,3 +179,17 @@ echo "To disable kiosk autostart later, remove: $AUTOSTART_DIR/karaopi.desktop"
 echo "To revert quiet boot, restore the backup: sudo cp <file>.karaopi-backup <file>"
 echo "If screen blanking still occurs on a Wayland session, disable it manually via:"
 echo "  sudo raspi-config > Display Options > Screen Blanking"
+
+if [ -f "/usr/share/plymouth/themes/pix/pix.plymouth" ]; then
+  echo
+  read -p "Replace the Raspberry Pi boot logo with your KaraoPi logo (kept in sync automatically)? (y/n): " SETUP_BOOT_SPLASH
+  if [ "$SETUP_BOOT_SPLASH" = "y" ]; then
+    if [ ! -f "$HOME/.pikaraoke/boot-splash.png" ]; then
+      echo "Start KaraoPi at least once first so it can generate the boot splash image, then re-run this script."
+    else
+      chmod +x "$INSTALL_DIR/scripts/install_boot_splash.sh"
+      sudo "$INSTALL_DIR/scripts/install_boot_splash.sh"
+    fi
+  fi
+fi
+

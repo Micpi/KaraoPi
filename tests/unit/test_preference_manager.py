@@ -288,6 +288,19 @@ def test_preference_manager_defaults_exist():
         "enable_title_tidy",
         "metadata_provider",
         "itunes_search_country",
+        # KaraoPi customization: branding, theme colors, QR code appearance, screensaver style.
+        "custom_logo_path",
+        "theme_primary_color",
+        "theme_secondary_color",
+        "theme_background_color",
+        "theme_navbar_color",
+        "qr_code_position",
+        "qr_code_size",
+        "qr_code_style",
+        "qr_code_fill_color",
+        "qr_code_back_color",
+        "qr_code_logo",
+        "screensaver_style",
     }
 
     assert set(PreferenceManager.DEFAULTS.keys()) == expected_keys
