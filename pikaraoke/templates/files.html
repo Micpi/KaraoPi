@@ -125,6 +125,13 @@
 	{% set display_name = filename_from_path(song) %}
 	<tr value="{{ song }}">
 		<td style="padding: 5px 0px">{{loop.index + pagination.skip}}</td>
+		<td class="song-cover-cell">
+			{% if cover_map.get(song) %}
+			<img class="song-cover-thumb" src="{{ url_for('images.cover_art', cover_key=cover_map.get(song)) }}" alt="" loading="lazy" />
+			{% else %}
+			<span class="song-cover-thumb song-cover-placeholder"><i class="icon icon-music"></i></span>
+			{% endif %}
+		</td>
 		<td id="{{display_name[0].lower()}}" style="padding-right: 0">
 			<a
 				class="add-song-link has-text-weight-bold has-text-success"

@@ -31,6 +31,20 @@ CREATE INDEX IF NOT EXISTS idx_artist ON songs(artist);
 CREATE INDEX IF NOT EXISTS idx_title ON songs(title);
 CREATE INDEX IF NOT EXISTS idx_metadata_status ON songs(metadata_status);
 
+CREATE TABLE IF NOT EXISTS cover_art (
+    song_path TEXT PRIMARY KEY,
+    artist TEXT NOT NULL,
+    title TEXT NOT NULL,
+    cover_key TEXT,
+    source TEXT,
+    source_url TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cover_art_key ON cover_art(cover_key);
+CREATE INDEX IF NOT EXISTS idx_cover_art_status ON cover_art(status);
+
 CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -91,7 +105,7 @@ class KaraokeDatabase:
     def _create_schema(self) -> None:
         self._conn.executescript(_SCHEMA)
         with self._conn:
-            self._conn.execute("PRAGMA user_version = 2")
+            self._conn.execute("PRAGMA user_version = 3")
 
     # ------------------------------------------------------------------
     # Read operations
@@ -115,6 +129,14 @@ class KaraokeDatabase:
                 "SELECT format FROM songs WHERE file_path = ?", (file_path,)
             ).fetchone()
             return row[0] if row else None
+
+    def get_song_identity(self, file_path: str) -> tuple[str | None, str | None]:
+        """Return the indexed artist/title pair for a song."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT artist, title FROM songs WHERE file_path = ?", (file_path,)
+            ).fetchone()
+            return (row["artist"], row["title"]) if row else (None, None)
 
     # ------------------------------------------------------------------
     # Batch write operations (used by LibraryScanner)
@@ -142,12 +164,20 @@ class KaraokeDatabase:
                 "UPDATE songs SET file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE file_path = ?",
                 [(new, old) for old, new in moves],
             )
+            self._conn.executemany(
+                "UPDATE cover_art SET song_path = ?, updated_at = CURRENT_TIMESTAMP WHERE song_path = ?",
+                [(new, old) for old, new in moves],
+            )
 
     def delete_by_paths(self, file_paths: list[str]) -> None:
         """Batch-delete songs by file path."""
         with self._lock, self._conn:
             self._conn.executemany(
                 "DELETE FROM songs WHERE file_path = ?",
+                [(p,) for p in file_paths],
+            )
+            self._conn.executemany(
+                "DELETE FROM cover_art WHERE song_path = ?",
                 [(p,) for p in file_paths],
             )
 
@@ -164,6 +194,10 @@ class KaraokeDatabase:
                     "UPDATE songs SET file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE file_path = ?",
                     [(new, old) for old, new in moves],
                 )
+                self._conn.executemany(
+                    "UPDATE cover_art SET song_path = ?, updated_at = CURRENT_TIMESTAMP WHERE song_path = ?",
+                    [(new, old) for old, new in moves],
+                )
             if inserts:
                 self._conn.executemany(
                     """
@@ -177,6 +211,61 @@ class KaraokeDatabase:
                     "DELETE FROM songs WHERE file_path = ?",
                     [(p,) for p in deletes],
                 )
+                self._conn.executemany(
+                    "DELETE FROM cover_art WHERE song_path = ?",
+                    [(p,) for p in deletes],
+                )
+
+    # ------------------------------------------------------------------
+    # Cover artwork index
+    # ------------------------------------------------------------------
+
+    def get_cover_art(self, song_path: str) -> dict | None:
+        """Return indexed cover artwork metadata for a song."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM cover_art WHERE song_path = ?", (song_path,)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def upsert_cover_art(
+        self,
+        song_path: str,
+        artist: str,
+        title: str,
+        status: str,
+        cover_key: str | None = None,
+        source: str | None = None,
+        source_url: str | None = None,
+    ) -> None:
+        """Create or update the artwork index entry for one song."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO cover_art
+                    (song_path, artist, title, cover_key, source, source_url, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(song_path) DO UPDATE SET
+                    artist=excluded.artist,
+                    title=excluded.title,
+                    cover_key=excluded.cover_key,
+                    source=excluded.source,
+                    source_url=excluded.source_url,
+                    status=excluded.status,
+                    updated_at=CURRENT_TIMESTAMP
+                """,
+                (song_path, artist, title, cover_key, source, source_url, status),
+            )
+
+    def get_cover_art_stats(self) -> dict[str, int]:
+        """Return cover index totals grouped by status."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT status, COUNT(*) AS count FROM cover_art GROUP BY status"
+            ).fetchall()
+            result = {row["status"]: row["count"] for row in rows}
+            result["total"] = sum(result.values())
+            return result
 
     # ------------------------------------------------------------------
     # Single-record write operations (delegate to batch methods)

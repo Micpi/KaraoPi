@@ -401,6 +401,13 @@ async function playVideoRobustly(videoElement) {
 const handleNowPlayingUpdate = (np) => {
   nowPlaying = np;
   if (np.now_playing) {
+    if (np.now_playing_cover) {
+      $("#splash-now-playing-cover")
+        .attr("src", withBasePath("/cover/" + np.now_playing_cover))
+        .show();
+    } else {
+      $("#splash-now-playing-cover").hide().removeAttr("src");
+    }
 
     // Handle updating now playing HTML
     let nowPlayingHtml = `<span>${np.now_playing}</span> `;
@@ -411,6 +418,7 @@ const handleNowPlayingUpdate = (np) => {
     $("#now-playing-singer").html(np.now_playing_user);
     $("#now-playing").fadeIn();
   } else {
+    $("#splash-now-playing-cover").hide().removeAttr("src");
     $("#now-playing").fadeOut();
   }
   if (np.up_next) {

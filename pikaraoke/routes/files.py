@@ -119,6 +119,7 @@ def browse():
         href=pagination_href,
     )
     start_index = (page - 1) * results_per_page
+    page_songs = songs[start_index : start_index + results_per_page]
     return render_template(
         "files.html",
         pagination=pagination,
@@ -127,7 +128,8 @@ def browse():
         letter=letter,
         # MSG: Title of the files page.
         title=_("Browse"),
-        songs=songs[start_index : start_index + results_per_page],
+        songs=page_songs,
+        cover_map={song: k.cover_art_manager.get_cover_key(song) for song in page_songs},
         admin=is_admin(),
         current_url=current_url,
     )

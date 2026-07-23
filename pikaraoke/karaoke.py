@@ -14,6 +14,7 @@ from flask_babel import _
 from qrcode.image.pure import PyPNGImage
 
 from pikaraoke.lib.download_manager import DownloadManager
+from pikaraoke.lib.cover_art_manager import CoverArtManager
 from pikaraoke.lib.events import EventSystem
 from pikaraoke.lib.ffmpeg import (
     get_ffmpeg_version,
@@ -64,6 +65,7 @@ class Karaoke:
     song_manager: SongManager
     queue_manager: QueueManager
     playback_controller: PlaybackController
+    cover_art_manager: CoverArtManager
 
     now_playing_notification: str | None = None
     volume: float
@@ -222,6 +224,11 @@ class Karaoke:
         self.score_session_id = self.db.create_score_session()
         self.song_manager = SongManager(
             self.download_path, db=self.db, get_title_tidy=lambda: self.enable_title_tidy
+        )
+        self.cover_art_manager = CoverArtManager(
+            self.db,
+            songs_provider=lambda: list(self.song_manager.songs),
+            display_name_provider=self.song_manager.display_name_from_path,
         )
         self._scanner = LibraryScanner(self.db)
         self._sync_lock = threading.Lock()
@@ -593,10 +600,22 @@ class Karaoke:
         # Get playback state from PlaybackController
         playback_state = self.playback_controller.get_now_playing()
 
+        cover_manager = getattr(self, "cover_art_manager", None)
+        cover_key = None
+        if cover_manager and self.playback_controller.now_playing_filename:
+            cover_key = cover_manager.get_cover_key(
+                self.playback_controller.now_playing_filename
+            )
         return {
             **playback_state,
+            "now_playing_cover": cover_key,
             "up_next": next_song["title"] if next_song else None,
             "next_user": next_song["user"] if next_song else None,
+            "up_next_cover": (
+                cover_manager.get_cover_key(next_song["file"])
+                if cover_manager and next_song
+                else None
+            ),
             "volume": self.volume,
         }
 

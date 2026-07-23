@@ -47,6 +47,13 @@
 	function handleNowPlaying(np) {
 		console.log(np);
 		if (np.now_playing) {
+			if (np.now_playing_cover) {
+				$("#now-playing-cover").attr("src", window.pikaraokeConfig.basePath + "/cover/" + np.now_playing_cover).show();
+				$(".now-playing-art > i").hide();
+			} else {
+				$("#now-playing-cover").hide();
+				$(".now-playing-art > i").show();
+			}
 			var nowPlayingHtml = `<p style="margin-bottom: 5px">${np.now_playing}</p>
           <p class="has-text-success" style="margin-bottom: 5px"><i class="icon icon-mic-1" title="Current singer"></i>${np.now_playing_user}</p>`;
 
@@ -74,6 +81,11 @@
 		}
 
 		if (np.up_next) {
+			if (np.up_next_cover) {
+				$("#up-next-cover").attr("src", window.pikaraokeConfig.basePath + "/cover/" + np.up_next_cover).show();
+			} else {
+				$("#up-next-cover").hide();
+			}
 			$("#up-next").html(`<p style="margin-bottom: 5px">${np.up_next}</p>
           <p class="has-text-success">
             {# MSG: Title text for the icon marking the next person to sing. #}
@@ -285,10 +297,14 @@
 
 <section class="now-playing-layout">
 	<div class="now-playing-card">
-		<div class="now-playing-art"><i class="icon icon-mic-1"></i></div>
+		<div class="now-playing-art">
+			<img id="now-playing-cover" class="cover-art-image" alt="" style="display:none" />
+			<i class="icon icon-mic-1"></i>
+		</div>
 		<p class="is-size-4 has-text-warning" id="now-playing">&nbsp;</p>
 	</div>
 	<div class="up-next-card">
+		<img id="up-next-cover" class="up-next-cover" alt="" style="display:none" />
 		<span class="eyebrow">{% trans %}Up next{% endtrans %}</span>
 		<h3>{# MSG: Title for the section displaying the next song to be played. #} {% trans %}Next Song{% endtrans %}</h3>
 		<p id="up-next" class="has-text-warning"></p>

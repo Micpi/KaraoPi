@@ -33,7 +33,7 @@ class TestInit:
 
     def test_user_version(self, db):
         ver = db._conn.execute("PRAGMA user_version").fetchone()[0]
-        assert ver == 2
+        assert ver == 3
 
     def test_songs_table_exists(self, db):
         tables = {

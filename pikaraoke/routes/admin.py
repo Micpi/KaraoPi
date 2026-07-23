@@ -9,7 +9,7 @@ import psutil
 import time
 
 import flask_babel
-from flask import flash, jsonify, make_response, redirect, url_for
+from flask import flash, jsonify, make_response, redirect, request, url_for
 from flask_smorest import Blueprint
 from marshmallow import Schema, fields
 
@@ -142,6 +142,35 @@ def sync_library():
     k = get_karaoke_instance()
     started = k.sync_library()
     if started:
+        return jsonify({"status": "started"})
+    return jsonify({"status": "already_syncing"})
+
+
+@admin_bp.route("/cover_art/status")
+def cover_art_status():
+    """Return cover synchronization progress and index totals."""
+    if not is_admin():
+        return jsonify({"error": "Unauthorized"}), 403
+    return jsonify(get_karaoke_instance().cover_art_manager.status())
+
+
+@admin_bp.route("/cover_art/sync", methods=["POST"])
+def sync_cover_art():
+    """Start background artwork matching for the complete song library."""
+    if not is_admin():
+        return jsonify({"error": "Unauthorized"}), 403
+    k = get_karaoke_instance()
+
+    def finished(status):
+        if k.socketio:
+            k.socketio.emit("cover_art_sync_finished", status, namespace="/")
+
+    started = k.cover_art_manager.start_sync(
+        force=request.form.get("force") == "true", on_finished=finished
+    )
+    if started:
+        if k.socketio:
+            k.socketio.emit("cover_art_sync_started", namespace="/")
         return jsonify({"status": "started"})
     return jsonify({"status": "already_syncing"})
 

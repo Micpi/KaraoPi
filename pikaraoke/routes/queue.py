@@ -70,7 +70,20 @@ def queue():
 def get_queue():
     """Get the current song queue."""
     k = get_karaoke_instance()
-    return json.dumps(k.queue_manager.queue)
+    cover_manager = getattr(k, "cover_art_manager", None)
+    queue = [
+        {
+            **item,
+            "cover": (
+                key
+                if cover_manager
+                and isinstance((key := cover_manager.get_cover_key(item["file"])), str)
+                else None
+            ),
+        }
+        for item in k.queue_manager.queue
+    ]
+    return json.dumps(queue)
 
 
 @queue_bp.route("/queue/addrandom/<int:amount>", methods=["GET"])

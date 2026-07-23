@@ -152,6 +152,9 @@
     }
 
     html += '<td style="padding: 8px 10px; vertical-align: middle;">';
+    if (np.now_playing_cover) {
+      html += '<img class="song-cover-thumb queue-cover" src="' + window.pikaraokeConfig.basePath + '/cover/' + np.now_playing_cover + '" alt="">';
+    }
     html += '<div class="is-flex is-flex-wrap-wrap is-align-items-baseline">';
     html += '<span class="has-text-success">' + np.now_playing_user + '</span>';
     html += '<span class="is-hidden-mobile has-text-grey mx-2">&bull;</span>';
@@ -301,6 +304,9 @@
     }
 
     html += '<td style="padding: 8px 10px; vertical-align: middle;">';
+    if (e.cover) {
+      html += '<img class="song-cover-thumb queue-cover" src="' + window.pikaraokeConfig.basePath + '/cover/' + e.cover + '" alt="">';
+    }
     html += '<div class="is-flex is-flex-wrap-wrap is-align-items-baseline">';
     html += '<span class="has-text-success">' + e.user + '</span>';
     html += '<span class="is-hidden-mobile has-text-grey mx-2">&bull;</span>';

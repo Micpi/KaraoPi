@@ -58,6 +58,7 @@
     class="has-text-warning stroke is-size-4 has-text-right"
     style="display: none"
   >
+    <img id="splash-now-playing-cover" alt="" style="display:none" />
     <p
       id="now-playing-song"
       class="has-text-white"
@@ -320,6 +321,16 @@
     height: var(--visual-viewport-height, 100dvh);
     display: none;
     background-color: black !important;
+  }
+  #splash-now-playing-cover {
+    float: right;
+    width: 82px;
+    height: 82px;
+    margin-left: 14px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 14px;
+    object-fit: cover;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, .45);
   }
   video {
     height: 100%;

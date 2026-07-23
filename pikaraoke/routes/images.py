@@ -36,6 +36,17 @@ def logo():
     return send_file(logo_path, mimetype=mimetype)
 
 
+@images_bp.route("/cover/<cover_key>")
+def cover_art(cover_key: str):
+    """Serve one locally indexed cover image."""
+    k = get_karaoke_instance()
+    cover_path = k.cover_art_manager.get_cover_path(cover_key)
+    if not cover_path:
+        return jsonify({"error": "Cover not found"}), 404
+    mimetype = mimetypes.guess_type(cover_path)[0] or "image/jpeg"
+    return send_file(cover_path, mimetype=mimetype, max_age=86400)
+
+
 @images_bp.route("/logo/upload", methods=["POST"])
 def upload_logo():
     """Upload a custom logo, replacing the default KaraoPi logo. Admin only."""
