@@ -5,6 +5,7 @@ PiKaraoke. It lets a git-clone based Raspberry Pi install update itself from a
 published GitHub Release without requiring PyPI/uv tool distribution.
 """
 
+import json
 import logging
 import os
 import re
