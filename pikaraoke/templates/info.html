@@ -3,21 +3,24 @@
 		// Function to fetch USB paths and populate the dropdown
 		function fetchUsbPaths() {
 			var $select = $("#pref-usb-download-path");
-			$select.empty().append('<option value="">{% trans %}Loading USB paths...{% endtrans %}</option>');
+			var currentPath = {{ usb_download_path | tojson }};
+			$select.empty().append($("<option>").val("").text({{ _('Loading USB paths...') | tojson }}));
 			$.getJSON("{{ url_for('admin.get_usb_paths') }}", function(data) {
 				$select.empty();
 				if (data.length === 0) {
-					$select.append('<option value="">{% trans %}No USB drives found{% endtrans %}</option>');
+					$select.append($("<option>").val("").text({{ _('No USB drives found') | tojson }}));
 					$select.prop("disabled", true);
 				} else {
 					$select.prop("disabled", false);
 					data.forEach(function(item) {
-						var selected = (item.path === "{{ usb_download_path }}") ? "selected" : "";
-						$select.append('<option value="' + item.path + '" ' + selected + '>' + item.label + '</option>');
+						$select.append($("<option>").val(item.path).text(item.label).prop("selected", item.path === currentPath));
 					});
+					if (currentPath && !$select.val()) {
+						$select.prepend($("<option>").val(currentPath).text(currentPath).prop("selected", true));
+					}
 				}
 			}).fail(function() {
-				$select.empty().append('<option value="">{% trans %}Error loading USB paths{% endtrans %}</option>');
+				$select.empty().append($("<option>").val("").text({{ _('Error loading USB paths') | tojson }}));
 				$select.prop("disabled", true);
 			});
 		}
@@ -43,6 +46,7 @@
 		}
 
 		$(function () {
+			fetchUsbPaths();
 			$(".user-preference-input").change(function() {
 				let val = $(this).val();
 				let pref = $(this).attr("data-pref");
@@ -52,6 +56,7 @@
 				if (val == startVal) return;
 
 				let timeoutId = setTimeout(function() {
+					$this.data("previous-start-value", startVal);
 					$this.attr("data-start-value", val);
 
 					if (pref == "bg_music_volume" || pref == "volume") {
@@ -86,6 +91,16 @@
 				.done(function(data) {
 					if (data[0]) showNotification(data[1], "is-success");
 					else showNotification(data[1], "is-danger")
+				})
+				.fail(function(xhr) {
+					var message = {{ _('Something went wrong! Your preferences were not changed') | tojson }};
+					if (xhr.responseJSON && xhr.responseJSON[1]) message = xhr.responseJSON[1];
+					var $input = $('[data-pref="' + pref + '"]');
+					var previousValue = $input.data("previous-start-value");
+					if (previousValue !== undefined) {
+						$input.attr("data-start-value", previousValue);
+					}
+					showNotification(message, "is-danger");
 				});
 			}
 
@@ -416,12 +431,8 @@
 			</div>
 		</div>
 
-		<div class="card">
-			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
-				<h3 class="title mb-0">{% trans %}USB Download Path{% endtrans %}</h3>
-			</header>
-			<div class="card-content collapsible-content">
-				<div class="content">
+					<hr>
+					<h4>{% trans %}USB song directory{% endtrans %}</h4>
 					<div class="user-preference-container is-align-items-center">
 						<div class="select is-fullwidth">
 							<select id="pref-usb-download-path" class="user-preference-input" data-pref="usb_download_path" data-start-value="{{ usb_download_path }}">
@@ -429,13 +440,10 @@
 							</select>
 						</div>
 						<label class="label" for="pref-usb-download-path">
-							{% trans %}Select a USB drive for song downloads{% endtrans %}
+							{% trans %}Select the USB drive used for the library and new song downloads{% endtrans %}
 						</label>
 					</div>
 					<button id="refresh-usb-paths-btn" class="button is-small is-primary is-outlined mt-3">{% trans %}Refresh USB Paths{% endtrans %}</button>
-				</div>
-			</div>
-		</div>
 
 		{# MSG: Title of the user preferences section. #}
 		<h1>{% trans %}User Preferences{% endtrans %}</h1>

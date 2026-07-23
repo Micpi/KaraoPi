@@ -211,6 +211,8 @@ class Karaoke:
         # Load all preference-driven attributes from config (with CLI overrides as fallback)
         cli_args = {k: v for k, v in locals().items() if k != "self"}
         self._load_preferences(**cli_args)
+        if self.usb_download_path:
+            self.download_path = os.path.abspath(os.path.expanduser(self.usb_download_path))
 
         # Log the settings to debug level
         self.log_settings_to_debug()
@@ -342,6 +344,22 @@ class Karaoke:
         thread = threading.Thread(target=self._background_sync, daemon=True)
         thread.start()
         return True
+
+    def change_download_path(self, path: str) -> bool:
+        """Switch the live library and download destination, then rescan it."""
+        if self._sync_lock.locked():
+            raise ValueError("Please wait for the current library scan to finish")
+        new_path = os.path.abspath(os.path.expanduser(path))
+        if not os.path.isdir(new_path):
+            raise ValueError("The selected song directory is not available")
+        if not os.access(new_path, os.R_OK | os.W_OK):
+            raise ValueError("The selected song directory is not readable and writable")
+
+        self.download_path = new_path
+        self.usb_download_path = new_path
+        self.song_manager.download_path = new_path
+        self.download_manager.set_download_path(new_path)
+        return self.sync_library()
 
     def _background_sync(self) -> None:
         try:

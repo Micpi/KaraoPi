@@ -70,6 +70,10 @@ class DownloadManager:
         self._worker_thread.start()
         logging.debug("Download queue worker started")
 
+    def set_download_path(self, path: str) -> None:
+        """Change the destination used by downloads that have not started yet."""
+        self._download_path = path
+
     def get_downloads_status(self) -> dict:
         """Get the status of active and pending downloads.
 

@@ -89,6 +89,28 @@ class TestChangePreferencesBroadcast:
             "preferences_update", {"key": "hide_overlay", "value": "True"}
         )
 
+    def test_usb_path_is_applied_live_before_it_is_saved(self, client, route_mocks):
+        route_mocks["karaoke"].preferences.set.return_value = (True, "Success")
+
+        response = client.get("/change_preferences?pref=usb_download_path&val=/media/usb")
+
+        assert response.status_code == 200
+        route_mocks["karaoke"].change_download_path.assert_called_once_with("/media/usb")
+        route_mocks["karaoke"].preferences.set.assert_called_once_with(
+            "usb_download_path", "/media/usb"
+        )
+
+    def test_unavailable_usb_path_is_rejected(self, client, route_mocks):
+        route_mocks["karaoke"].change_download_path.side_effect = ValueError(
+            "The selected song directory is not available"
+        )
+
+        response = client.get("/change_preferences?pref=usb_download_path&val=/missing")
+
+        assert response.status_code == 400
+        route_mocks["karaoke"].preferences.set.assert_not_called()
+        route_mocks["broadcast"].assert_not_called()
+
 
 class TestClearPreferencesBroadcast:
     """Tests that clear_preferences broadcasts Socket.IO events."""

@@ -62,6 +62,8 @@ class PreferenceManager:
         "qr_code_back_color": "#ffffff",
         "qr_code_logo": "none",
         "screensaver_style": "bounce",
+        # Empty means the path supplied at startup with --download-path.
+        "usb_download_path": "",
     }
 
     def __init__(self, config_file_path: str = "config.ini", target: object | None = None) -> None:

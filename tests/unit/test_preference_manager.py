@@ -300,8 +300,9 @@ def test_preference_manager_defaults_exist():
         "qr_code_fill_color",
         "qr_code_back_color",
         "qr_code_logo",
-        "screensaver_style",
-    }
+            "screensaver_style",
+            "usb_download_path",
+        }
 
     assert set(PreferenceManager.DEFAULTS.keys()) == expected_keys
 

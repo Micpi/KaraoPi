@@ -256,6 +256,9 @@ def get_usb_paths():
     """
     Detects and returns a list of potential USB drive paths.
     """
+    if not is_admin():
+        return jsonify({"error": "Unauthorized"}), 403
+
     usb_paths = []
     platform = get_platform()
 
@@ -276,8 +279,5 @@ def get_usb_paths():
             if "removable" in p.opts or p.mountpoint.startswith("/media/") or p.mountpoint.startswith("/mnt/"):
                 label = p.mountpoint # Use mountpoint as label for now
                 usb_paths.append({"path": p.mountpoint, "label": label})
-
-    # Add a "default" option to clear the setting or use the application's default download path
-    usb_paths.insert(0, {"path": "", "label": _("Use default download path")})
 
     return jsonify(usb_paths)

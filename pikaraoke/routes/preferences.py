@@ -39,6 +39,15 @@ def change_preferences(query):
     if is_admin():
         preference = query["pref"]
         val = query["val"]
+        if preference == "usb_download_path":
+            if not val:
+                return jsonify(
+                    [False, _("Please select an available USB directory")]
+                ), 400
+            try:
+                k.change_download_path(val)
+            except ValueError as exc:
+                return jsonify([False, str(exc)]), 400
         success, message = k.preferences.set(preference, val)
         if success:
             broadcast_event("preferences_update", {"key": preference, "value": val})
