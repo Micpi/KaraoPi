@@ -28,6 +28,24 @@ let uiScale = null;
 let clockIntervalId = null;
 let splashDomReady = false;
 let pendingNowPlaying = null;
+const splashRecoveryKey = "pikaraokeSplashRecoveryCount";
+let splashRecoveryScheduled = false;
+
+const recoverSplash = (reason) => {
+  if (splashRecoveryScheduled) return true;
+  const attempts = Number(sessionStorage.getItem(splashRecoveryKey) || 0);
+  console.error(`Splash recovery requested: ${reason} (attempt ${attempts + 1})`);
+  if (attempts < 2) {
+    splashRecoveryScheduled = true;
+    sessionStorage.setItem(splashRecoveryKey, String(attempts + 1));
+    // Reloading reconstructs the video/HLS pipeline. The server sends its
+    // current playback state again as soon as this splash reconnects.
+    setTimeout(() => location.reload(), 500);
+    return true;
+  }
+  sessionStorage.removeItem(splashRecoveryKey);
+  return false;
+};
 
 // Browser detection
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -371,7 +389,7 @@ const handleNowPlayingUpdate = (np) => {
         video.load();
         playVideoRobustly(video).catch(e => {
             console.error("Could not start native HLS playback:", e);
-            endSong("failed to start");
+            if (!recoverSplash("native HLS failed to start")) endSong("failed to start");
         });
       } else {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
@@ -382,8 +400,16 @@ const handleNowPlayingUpdate = (np) => {
           console.log("HLS.js manifest parsed, attempting to play.");
           playVideoRobustly(video).catch(e => {
               console.error("Could not start HLS.js playback:", e);
-              endSong("failed to start");
+              if (!recoverSplash("HLS.js failed to start")) endSong("failed to start");
           });
+        });
+        hlsInstance.on(Hls.Events.ERROR, function (_event, data) {
+          if (data.fatal) {
+            console.error("Fatal HLS error:", data);
+            if (!recoverSplash(`fatal HLS error: ${data.type}`)) {
+              endSong("fatal HLS error");
+            }
+          }
         });
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
@@ -394,7 +420,7 @@ const handleNowPlayingUpdate = (np) => {
       video.load();
       playVideoRobustly(video).catch(e => {
           console.error("Could not start video playback:", e);
-          endSong("failed to start");
+          if (!recoverSplash("video failed to start")) endSong("failed to start");
       });
     }
 
@@ -489,6 +515,7 @@ const setupVideoPlayer = () => {
   $('#video-container').hide();
   const video = getVideoPlayer();
   video.addEventListener("play", () => {
+    sessionStorage.removeItem(splashRecoveryKey);
     $("#video-container").show();
     if (isMaster) {
       setTimeout(() => { socket.emit("start_song") }, 1200);

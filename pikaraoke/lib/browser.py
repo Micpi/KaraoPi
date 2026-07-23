@@ -128,11 +128,10 @@ class Browser:
         if browser_executable:
             cmd = [browser_executable]
 
-            # Use a persistent profile on desktop platforms to ensure flags are respected
-            # even if Chrome is already open and to preserve cookies (user name).
-            # Skip on Pi (dedicated kiosk device uses default profile).
-            if not self.karaoke.is_raspberry_pi:
-                cmd.append(f"--user-data-dir={self.browser_profile_dir}")
+            # Always use a dedicated profile. On a Pi, sharing Chromium's
+            # default profile can attach the kiosk URL to a stale pre-existing
+            # process/session and intermittently leave a white or black window.
+            cmd.append(f"--user-data-dir={self.browser_profile_dir}")
 
             if self.window_size:
                 # Windowed mode: use --app for minimal UI, --new-window to ensure sizing works
