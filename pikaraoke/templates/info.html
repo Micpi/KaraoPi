@@ -118,7 +118,9 @@
 						{{ _('Are you sure you want to update KaraoPi right now? Playback and downloads will stop briefly while the system installs the new release.') | tojson }}
 					)
 				) {
-					location.href = this.href;
+					$.post("{{ url_for('admin.self_update') }}");
+					showNotification({{ _('Update started... The system will restart shortly.') | tojson }}, "is-info", 10000);
+					$(this).addClass("is-loading").prop("disabled", true);
 				}
 			});
 
@@ -770,7 +772,7 @@
 					</p>
 					{% if release_update and release_update.update_available %}
 						<a id="update-app-link" class="button is-primary is-inverted" href="{{ url_for('admin.update_app') }}"
-							>{% trans %}Update KaraoPi from GitHub release{% endtrans %}</a
+							>{% trans %}Update KaraoPi from GitHub release{% endtrans %}</a_
 						>
 						<p class="mt-3 is-size-7 has-text-warning">
 							{% trans latest_version=release_update.latest_tag -%}
