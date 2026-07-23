@@ -20,6 +20,13 @@
 
 set -e
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "ERROR: Do not run this script with sudo or as root."
+  echo "Run it as your normal user instead (e.g. the 'pi' user): ./setup_kiosk.sh"
+  echo "The script calls sudo itself for the specific steps that need elevation."
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_INSTALL_DIR="$(cd "$SCRIPT_DIR/.." && pwd 2>/dev/null || echo "/home/pi/KaraoPi")"
 INSTALL_DIR="${1:-$DEFAULT_INSTALL_DIR}"

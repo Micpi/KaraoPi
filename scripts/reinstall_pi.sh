@@ -10,6 +10,13 @@
 
 set -e
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "ERROR: Do not run this script with sudo or as root."
+  echo "Run it as your normal user instead (e.g. the 'pi' user): ./reinstall_pi.sh"
+  echo "Running as root would leave the installed files owned by root, blocking future reinstalls."
+  exit 1
+fi
+
 REPO_URL="https://github.com/Micpi/KaraoPi.git"
 INSTALL_DIR="${1:-/home/pi/KaraoPi}"
 SEARCH_ROOTS=("/home" "/opt" "/root" "/usr/local")
