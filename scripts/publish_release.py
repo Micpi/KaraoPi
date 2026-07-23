@@ -1,7 +1,7 @@
 import argparse
-import ast
 import json
 import os
+import re
 import subprocess
 import sys
 from urllib.error import HTTPError, URLError
@@ -9,9 +9,10 @@ from urllib.request import Request, urlopen
 
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-CONSTANTS_FILE = os.path.join(REPO_ROOT, "constants.py")
+VERSION_FILE = os.path.join(REPO_ROOT, "pikaraoke", "version.py")
 DEFAULT_BRANCH = "main"
 DEFAULT_REMOTE = "origin"
+DEFAULT_REPOSITORY = "Micpi/KaraoPi"
 
 
 class ReleaseError(RuntimeError):
@@ -34,20 +35,14 @@ def run_command(command, cwd=REPO_ROOT, check=True):
 
 
 def load_release_metadata():
-    with open(CONSTANTS_FILE, "r", encoding="utf-8") as constants_file:
-        module = ast.parse(constants_file.read(), filename=CONSTANTS_FILE)
+    with open(VERSION_FILE, "r", encoding="utf-8") as version_file:
+        contents = version_file.read()
 
-    metadata = {}
-    for node in module.body:
-        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            name = node.targets[0].id
-            if name in {"VERSION", "GITHUB_REPOSITORY"}:
-                metadata[name] = ast.literal_eval(node.value)
+    match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', contents)
+    if not match:
+        raise ReleaseError(f"Unable to find __version__ in {VERSION_FILE}")
 
-    missing = {"VERSION", "GITHUB_REPOSITORY"} - metadata.keys()
-    if missing:
-        raise ReleaseError(f"Missing required release metadata in constants.py: {', '.join(sorted(missing))}")
-    return metadata
+    return {"VERSION": match.group(1), "GITHUB_REPOSITORY": DEFAULT_REPOSITORY}
 
 
 def get_current_branch():

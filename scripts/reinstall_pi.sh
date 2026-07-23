@@ -15,21 +15,31 @@ INSTALL_DIR="${1:-/home/pi/KaraoPi}"
 SEARCH_ROOTS=("/home" "/opt" "/root" "/usr/local")
 
 echo "*** STOPPING ANY RUNNING KARAOPI PROCESS ***"
+pkill -f "pikaraoke.app" 2>/dev/null || true
 pkill -f "app.py" 2>/dev/null || true
 pkill -f "KaraoPi.sh" 2>/dev/null || true
-pkill -f "pikaraoke.sh" 2>/dev/null || true
 
 echo
 echo "*** SEARCHING FOR EXISTING KARAOPI/PIKARAOKE INSTALLATIONS ***"
 mapfile -t candidate_files < <(
-  find "${SEARCH_ROOTS[@]}" -maxdepth 6 -type f -name "karaoke.py" 2>/dev/null
+  find "${SEARCH_ROOTS[@]}" -maxdepth 7 -type f \( -path "*/pikaraoke/karaoke.py" -o -name "karaoke.py" \) 2>/dev/null
 )
 
 declare -A found_dirs
 for karaoke_file in "${candidate_files[@]}"; do
-  dir=$(dirname "$karaoke_file")
-  if [ -f "$dir/app.py" ] && [ -f "$dir/constants.py" ]; then
-    found_dirs["$dir"]=1
+  # New layout: <install_dir>/pikaraoke/karaoke.py -> install_dir is two levels up.
+  # Legacy layout: <install_dir>/karaoke.py -> install_dir is one level up.
+  package_dir=$(dirname "$karaoke_file")
+  if [ "$(basename "$package_dir")" = "pikaraoke" ]; then
+    dir=$(dirname "$package_dir")
+    if [ -f "$dir/pyproject.toml" ]; then
+      found_dirs["$dir"]=1
+    fi
+  else
+    dir="$package_dir"
+    if [ -f "$dir/app.py" ] && [ -f "$dir/constants.py" ]; then
+      found_dirs["$dir"]=1
+    fi
   fi
 done
 
@@ -74,11 +84,24 @@ else
 fi
 
 echo
-echo "*** RUNNING SETUP ***"
-chmod +x setup.sh KaraoPi.sh
-./setup.sh
+echo "*** INSTALLING DEPENDENCIES ***"
+echo "Note: this requires ffmpeg and a JS runtime (deno/node) to already be installed on this system."
+if command -v uv >/dev/null 2>&1; then
+  echo "Using uv to sync dependencies."
+  uv sync
+else
+  echo "uv not found, falling back to a plain Python virtual environment."
+  python3 -m venv .venv
+  . .venv/bin/activate
+  pip install --upgrade pip
+  pip install -e .
+fi
 
 echo
 echo "*** DONE ***"
 echo "KaraoPi has been reinstalled in: $INSTALL_DIR"
-echo "Start it with: $INSTALL_DIR/KaraoPi.sh"
+if command -v uv >/dev/null 2>&1; then
+  echo "Start it with: cd $INSTALL_DIR && uv run pikaraoke"
+else
+  echo "Start it with: cd $INSTALL_DIR && .venv/bin/python -m pikaraoke.app"
+fi

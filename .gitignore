@@ -1,8 +1,26 @@
 *.pyc
 *.swp
-.vscode/
 .venv/
+.venv*
+/.vscode/
 __pycache__/
+dist/
+build/
 songs/
 qrcode.png
 .DS_Store
+*.ini
+docker-compose.yml
+/.idea/
+.coverage
+.claude/
+/logs
+
+# Compiled translation files (generated from .po files at startup)
+*.mo
+
+# Briefcase build artifacts
+*.briefcase.toml
+
+# Script output
+scripts/itunes_report.csv
