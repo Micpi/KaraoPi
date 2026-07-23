@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import threading
+import psutil
 import time
 
 import flask_babel
@@ -247,3 +248,35 @@ def logout():
     # MSG: Message shown after logging out as admin successfully
     flash(_("Logged out of admin mode!"), "is-success")
     return resp
+
+
+@admin_bp.route("/usb_paths")
+def get_usb_paths():
+    """
+    Detects and returns a list of potential USB drive paths.
+    """
+    usb_paths = []
+    platform = get_platform()
+
+    if platform == "windows":
+        # On Windows, iterate through drive letters and check if they are removable.
+        # This is a heuristic; a more robust solution might involve pywin32 or shelling out to powershell.
+        import string
+        for drive_letter in string.ascii_uppercase:
+            drive_path = f"{drive_letter}:\\"
+            if os.path.exists(drive_path):
+                # psutil.disk_partitions() can give more info, but identifying "removable" is tricky
+                # without platform-specific APIs. For simplicity, we list existing drives.
+                usb_paths.append({"path": drive_path, "label": drive_path})
+    else: # Linux, macOS, etc.
+        partitions = psutil.disk_partitions()
+        for p in partitions:
+            # Heuristic: check for common USB mount points or 'removable' option
+            if "removable" in p.opts or p.mountpoint.startswith("/media/") or p.mountpoint.startswith("/mnt/"):
+                label = p.mountpoint # Use mountpoint as label for now
+                usb_paths.append({"path": p.mountpoint, "label": label})
+
+    # Add a "default" option to clear the setting or use the application's default download path
+    usb_paths.insert(0, {"path": "", "label": _("Use default download path")})
+
+    return jsonify(usb_paths)

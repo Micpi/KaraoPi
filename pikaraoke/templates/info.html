@@ -1,5 +1,27 @@
 {% extends 'base.html' %} {% block scripts %}
 	<script>
+		// Function to fetch USB paths and populate the dropdown
+		function fetchUsbPaths() {
+			var $select = $("#pref-usb-download-path");
+			$select.empty().append('<option value="">{% trans %}Loading USB paths...{% endtrans %}</option>');
+			$.getJSON("{{ url_for('admin.get_usb_paths') }}", function(data) {
+				$select.empty();
+				if (data.length === 0) {
+					$select.append('<option value="">{% trans %}No USB drives found{% endtrans %}</option>');
+					$select.prop("disabled", true);
+				} else {
+					$select.prop("disabled", false);
+					data.forEach(function(item) {
+						var selected = (item.path === "{{ usb_download_path }}") ? "selected" : "";
+						$select.append('<option value="' + item.path + '" ' + selected + '>' + item.label + '</option>');
+					});
+				}
+			}).fail(function() {
+				$select.empty().append('<option value="">{% trans %}Error loading USB paths{% endtrans %}</option>');
+				$select.prop("disabled", true);
+			});
+		}
+
 		async function updatePhrases(phrases) {
 			let returnData = null
 
@@ -303,6 +325,12 @@
 				showNotification({{ _('Library sync complete') | tojson }}, "is-success");
 			});
 		});
+
+		// Refresh button for USB paths
+		$("#refresh-usb-paths-btn").click(function(e) {
+			e.preventDefault();
+			fetchUsbPaths();
+		});
 	</script>
 {% endblock %}
 
@@ -384,6 +412,27 @@
 						{# MSG: Help text explaining what Sync Now does. #}
 						{% trans %}Reconciles the library with the song directory in the background.{% endtrans %}
 					</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
+				<h3 class="title mb-0">{% trans %}USB Download Path{% endtrans %}</h3>
+			</header>
+			<div class="card-content collapsible-content">
+				<div class="content">
+					<div class="user-preference-container is-align-items-center">
+						<div class="select is-fullwidth">
+							<select id="pref-usb-download-path" class="user-preference-input" data-pref="usb_download_path" data-start-value="{{ usb_download_path }}">
+								<option value="">{% trans %}Loading USB paths...{% endtrans %}</option>
+							</select>
+						</div>
+						<label class="label" for="pref-usb-download-path">
+							{% trans %}Select a USB drive for song downloads{% endtrans %}
+						</label>
+					</div>
+					<button id="refresh-usb-paths-btn" class="button is-small is-primary is-outlined mt-3">{% trans %}Refresh USB Paths{% endtrans %}</button>
 				</div>
 			</div>
 		</div>
