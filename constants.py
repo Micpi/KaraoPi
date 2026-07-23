@@ -1,4 +1,5 @@
-VERSION = "1.2"
+VERSION = "1.3.0"
+GITHUB_REPOSITORY = "Micpi/KaraoPi"
 LANGUAGES = {
     "en": "English",
     "zh_CN": "Chinese",

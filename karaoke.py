@@ -437,7 +437,9 @@ class Karaoke:
                     self.queue.pop(0)
 
                     # Keep logging output until the splash screen reports back that the stream is playing
-                    max_retries = 100
+                    # Increase the number of retries so slow clients have more time to connect.
+                    # Old value: 100 (≈10s). New value: 300 (≈30s).
+                    max_retries = 300
                     while self.is_playing == False and max_retries > 0:
                         time.sleep(0.1) #prevents loop from trying to replay track
                         try:  

@@ -37,6 +37,17 @@
       }
     });
 
+    $("#update-app-link").click(function (e) {
+      e.preventDefault();
+      if (
+        window.confirm(
+          "{{ _('Are you sure you want to update KaraoPi right now? Playback and downloads will stop briefly while the Raspberry Pi installs the new release.') }}"
+        )
+      ) {
+        location.href = this.href;
+      }
+    });
+
     $("#expand-link").click(function (e) {
       e.preventDefault();
       // {# MSG: Confirmation text when the user wants to expand the filesystem to take the entire SD card. #}
@@ -127,6 +138,33 @@
     Check the pikaraoke log for errors. 
   {%- endtrans %}
 </p>
+
+<p>
+  {% if release_update %}
+    {% trans latest_version=release_update.latest_tag, repository=github_repository -%}
+      Latest GitHub release for {{ repository }}: {{ latest_version }}
+    {%- endtrans %}
+  {% else %}
+    {% trans %}Latest KaraoPi release information is currently unavailable.{% endtrans %}
+  {% endif %}
+</p>
+{% if release_update and release_update.update_available %}
+  <ul>
+    <li>
+      <a id="update-app-link" href="{{ url_for('update_app') }}">{% trans %}Update KaraoPi from GitHub release{% endtrans %}</a>
+    </li>
+  </ul>
+  <p class="help">
+    {% trans latest_version=release_update.latest_tag -%}
+      KaraoPi will download release {{ latest_version }}, install any updated Python dependencies, and restart automatically.
+    {%- endtrans %}
+  </p>
+{% elif release_update %}
+  <p class="help">{% trans %}KaraoPi is already running the latest published GitHub release.{% endtrans %}</p>
+{% endif %}
+{% if release_update_error %}
+  <p class="help">{{ release_update_error }}</p>
+{% endif %}
 
 {# MSG: Title of the section on shutting down / turning off the machine running Pikaraoke. #}
 <h1>{% trans %}Shutdown{% endtrans %}</h1>

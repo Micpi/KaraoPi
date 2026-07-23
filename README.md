@@ -89,6 +89,8 @@ Run the setup script to install dependencies and set up the python env:
 ./setup.sh
 ```
 
+KaraoPi can now self-update from GitHub Releases from the admin Information page. The updater downloads the latest published release archive from `Micpi/KaraoPi`, overlays the application files, reinstalls Python dependencies, and restarts the app automatically.
+
 If you're on a raspberry pi or debian system the setup script should have handled installing ffmpeg via apt.
 
 If you're on OSX or another Linux distro, manually install FFMPEG 6.0 or greater from here: https://ffmpeg.org/download.html
@@ -118,6 +120,29 @@ The app should launch and show the PiKaraoke splash screen and a QR code and a U
 If you'd like to manually open the splash screen/player or open it on a separate computer's web browser, run `./pikaraoke.sh --headless` to suppress the launch of the splash screen. Then point your browser the the URL it tells you.
 
 For more options, run `./pikaraoke.sh --help`
+
+## Application updates
+
+If your Raspberry Pi runs KaraoPi from this repository, you can publish a GitHub Release and then trigger the update directly from the web UI:
+
+1. Create and publish a new release on GitHub for `Micpi/KaraoPi`.
+2. Open `Info` in the KaraoPi web UI while logged in as admin.
+3. Use `Update KaraoPi from GitHub release`.
+4. KaraoPi will stop briefly, download the latest release source archive, reinstall Python dependencies, and relaunch automatically.
+
+If the update fails, inspect `karaopi-update.log` in the application directory on the Raspberry Pi.
+
+### Publishing a release
+
+This repository now includes a release publication script and a GitHub Actions workflow.
+
+1. Increment `VERSION` in `constants.py` after your code changes are complete.
+2. Commit and push your changes to `main`.
+3. Run `py -3 scripts/publish_release.py` from the repository root.
+4. The script verifies the worktree is clean, confirms `origin` targets `Micpi/KaraoPi`, checks that `HEAD` matches `origin/main`, ensures `v<VERSION>` does not already exist, then pushes the new tag.
+5. GitHub Actions automatically creates the published GitHub Release from that tag with generated release notes.
+
+Use `py -3 scripts/publish_release.py --dry-run` to validate everything without creating the tag.
 
 ## Auto-start PiKaraoke
 

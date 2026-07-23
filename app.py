@@ -26,7 +26,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 import karaoke
-from constants import LANGUAGES, VERSION
+from constants import GITHUB_REPOSITORY, LANGUAGES, VERSION
+from lib.app_updater import AppUpdateError, get_release_update_status, start_background_update
 from lib.get_platform import get_platform
 
 try:
@@ -505,6 +506,14 @@ def info():
     # youtube-dl
     youtubedl_version = k.youtubedl_version
 
+    release_update_error = None
+    release_update = None
+    try:
+        release_update = get_release_update_status(VERSION, repository=GITHUB_REPOSITORY)
+    except Exception as exc:
+        release_update_error = str(exc)
+        logging.warning("Unable to load KaraoPi release information: %s", exc)
+
     return render_template(
         "info.html",
         site_title=site_name,
@@ -516,6 +525,9 @@ def info():
         youtubedl_version=youtubedl_version,
         is_pi=is_raspberry_pi,
         pikaraoke_version=VERSION,
+        github_repository=GITHUB_REPOSITORY,
+        release_update=release_update,
+        release_update_error=release_update_error,
         admin=is_admin(),
         admin_enabled=admin_password != None
     )
@@ -542,6 +554,37 @@ def delayed_halt(cmd):
 def update_youtube_dl():
     time.sleep(3)
     k.upgrade_youtubedl()
+
+
+@app.route("/update_app")
+def update_app():
+    if not is_admin():
+        flash("You don't have permission to update KaraoPi", "is-danger")
+        return redirect(url_for("home"))
+
+    relaunch_command = [sys.executable, os.path.abspath(__file__)] + sys.argv[1:]
+    try:
+        update_status = start_background_update(
+            app_root=os.path.dirname(os.path.abspath(__file__)),
+            current_version=VERSION,
+            relaunch_command=relaunch_command,
+            repository=GITHUB_REPOSITORY,
+        )
+    except AppUpdateError as exc:
+        flash(str(exc), "is-warning")
+        return redirect(url_for("info"))
+    except Exception as exc:
+        logging.exception("Unable to start KaraoPi update")
+        flash(f"Unable to start KaraoPi update: {exc}", "is-danger")
+        return redirect(url_for("info"))
+
+    flash(
+        f"Updating KaraoPi to {update_status['latest_tag']}. The application will stop now and restart automatically.",
+        "is-warning",
+    )
+    th = threading.Thread(target=delayed_halt, args=[0])
+    th.start()
+    return redirect(url_for("home"))
 
 @app.route("/update_ytdl")
 def update_ytdl():
