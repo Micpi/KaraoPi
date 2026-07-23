@@ -31,6 +31,20 @@ let pendingNowPlaying = null;
 const splashRecoveryKey = "pikaraokeSplashRecoveryCount";
 let splashRecoveryScheduled = false;
 
+const scheduleKioskBootReload = () => {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("kiosk_boot")) return;
+
+  // Chromium on Raspberry Pi occasionally initializes its video compositor
+  // as a black/white surface on the first kiosk navigation. Reload once after
+  // the page, socket and media elements have settled, then remove the marker
+  // so manual reloads and later reconnects never loop.
+  url.searchParams.delete("kiosk_boot");
+  setTimeout(() => {
+    window.location.replace(url.pathname + url.search + url.hash);
+  }, 5000);
+};
+
 const recoverSplash = (reason) => {
   if (splashRecoveryScheduled) return true;
   const attempts = Number(sessionStorage.getItem(splashRecoveryKey) || 0);
@@ -801,6 +815,7 @@ const setupUIScaling = () => {
 // Document ready procedures
 
 $(function () {
+  scheduleKioskBootReload();
   // Setup various features and listeners
   setupUIScaling();
   if (PikaraokeConfig.showSplashClock) startClock();

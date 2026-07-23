@@ -65,6 +65,13 @@ class Browser:
                     return f"{match.group(1)},{match.group(2)}"
         return None
 
+    def _get_launch_url(self) -> str:
+        """Return the splash URL, marking a fresh Pi kiosk launch for one reload."""
+        if not self.karaoke.is_raspberry_pi:
+            return self.splash_url
+        separator = "&" if "?" in self.splash_url else "?"
+        return f"{self.splash_url}{separator}kiosk_boot={int(time.time() * 1000)}"
+
     def launch_splash_screen(self) -> subprocess.Popen | None:
         """Launch the browser with the splash screen in kiosk mode.
 
@@ -127,6 +134,7 @@ class Browser:
         # Launch with Chromium flags if browser found
         if browser_executable:
             cmd = [browser_executable]
+            launch_url = self._get_launch_url()
 
             # Always use a dedicated profile. On a Pi, sharing Chromium's
             # default profile can attach the kiosk URL to a stale pre-existing
@@ -137,7 +145,7 @@ class Browser:
                 # Windowed mode: use --app for minimal UI, --new-window to ensure sizing works
                 cmd.append("--new-window")
                 cmd.append(f"--window-size={self.window_size}")
-                cmd.append(f"--app={self.splash_url}")
+                cmd.append(f"--app={launch_url}")
             else:
                 cmd.append("--kiosk")
                 cmd.append("--start-fullscreen")
@@ -176,7 +184,7 @@ class Browser:
 
             # URL must be last argument for --kiosk mode
             if not self.window_size:
-                cmd.append(self.splash_url)
+                cmd.append(launch_url)
 
             logging.debug(f"Browser command: {' '.join(cmd)}")
             try:
