@@ -22,6 +22,11 @@ DEFAULT_REPOSITORY = "Micpi/KaraoPi"
 GITHUB_API_BASE = "https://api.github.com/repos"
 UPDATE_LOG_FILE = "karaopi-update.log"
 UPDATE_TIMEOUT_SECONDS = 10
+GITHUB_API_HEADERS = {
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "KaraoPi-Updater",
+}
 
 
 class AppUpdateError(RuntimeError):
@@ -47,10 +52,7 @@ def get_latest_release_info(repository=DEFAULT_REPOSITORY, timeout=UPDATE_TIMEOU
     try:
         response = requests.get(
             f"{GITHUB_API_BASE}/{repository}/releases/latest",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "User-Agent": "KaraoPi-Updater",
-            },
+            headers=GITHUB_API_HEADERS,
             timeout=timeout,
         )
     except requests.RequestException as exc:
@@ -223,7 +225,10 @@ def download_release_archive(zip_url, destination_dir):
     try:
         with requests.get(
             zip_url,
-            headers={"Accept": "application/octet-stream", "User-Agent": "KaraoPi-Updater"},
+            # GitHub's zipball API rejects application/octet-stream with HTTP
+            # 415. Ask for the REST API media type; requests then follows the
+            # redirect to the generated ZIP archive.
+            headers=GITHUB_API_HEADERS,
             timeout=UPDATE_TIMEOUT_SECONDS,
             stream=True,
         ) as response:

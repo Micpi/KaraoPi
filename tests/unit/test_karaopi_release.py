@@ -31,3 +31,31 @@ def test_failed_pending_update_keeps_marker_for_diagnostics_and_retry(tmp_path):
             karaopi_release.apply_pending_update(str(tmp_path))
 
     assert karaopi_release.read_pending_update_marker(str(tmp_path))["tag"] == "v9.9.9"
+
+
+def test_download_archive_uses_github_api_media_type(tmp_path):
+    class FakeResponse:
+        ok = True
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def iter_content(self, chunk_size):
+            assert chunk_size == 1024 * 64
+            yield b"zip-content"
+
+    with patch.object(
+        karaopi_release.requests, "get", return_value=FakeResponse()
+    ) as request_get:
+        archive = karaopi_release.download_release_archive(
+            "https://api.github.com/repos/Micpi/KaraoPi/zipball/v9.9.9",
+            str(tmp_path),
+        )
+
+    assert (tmp_path / "release.zip").read_bytes() == b"zip-content"
+    assert archive == str(tmp_path / "release.zip")
+    assert request_get.call_args.kwargs["headers"]["Accept"] == "application/vnd.github+json"
