@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="karaopi-bg" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#7b3fe4"/>
+      <stop offset="55%" stop-color="#5b21b6"/>
+      <stop offset="100%" stop-color="#2e0f5e"/>
+    </radialGradient>
+    <linearGradient id="karaopi-mic" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe27a"/>
+      <stop offset="100%" stop-color="#ffb020"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="248" fill="url(#karaopi-bg)"/>
+  <circle cx="256" cy="256" r="248" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="10"/>
+
+  <!-- sound waves -->
+  <g stroke="#ffffff" stroke-opacity="0.55" fill="none" stroke-linecap="round" stroke-width="10">
+    <path d="M138 210 Q 96 256 138 302"/>
+    <path d="M108 180 Q 46 256 108 332"/>
+    <path d="M374 210 Q 416 256 374 302"/>
+    <path d="M404 180 Q 466 256 404 332"/>
+  </g>
+
+  <!-- microphone -->
+  <g transform="translate(256 246)">
+    <rect x="-46" y="-140" width="92" height="150" rx="46" fill="url(#karaopi-mic)"/>
+    <rect x="-46" y="-140" width="92" height="150" rx="46" fill="none" stroke="#7a4a00" stroke-opacity="0.25" stroke-width="4"/>
+    <g stroke="#7a4a00" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round">
+      <line x1="-30" y1="-118" x2="30" y2="-118"/>
+      <line x1="-30" y1="-96" x2="30" y2="-96"/>
+      <line x1="-30" y1="-74" x2="30" y2="-74"/>
+      <line x1="-30" y1="-52" x2="30" y2="-52"/>
+      <line x1="-30" y1="-30" x2="30" y2="-30"/>
+    </g>
+    <path d="M-78 -20 a78 78 0 0 0 156 0" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+    <line x1="0" y1="58" x2="0" y2="104" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+    <line x1="-52" y1="104" x2="52" y2="104" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+  </g>
+
+  <text x="256" y="430" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="72" font-weight="700" fill="#ffffff" letter-spacing="1">Karao<tspan fill="#ffd166">Pi</tspan></text>
+</svg>

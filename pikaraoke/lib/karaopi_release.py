@@ -93,10 +93,77 @@ def get_release_update_status(current_version, repository=DEFAULT_REPOSITORY):
     }
 
 
+def get_pending_update_marker_path(app_root):
+    return os.path.join(app_root, ".karaopi_update_pending.json")
+
+
+def write_pending_update_marker(app_root, repository, tag, zip_url):
+    marker = {"repository": repository, "tag": tag, "zip_url": zip_url}
+    with open(get_pending_update_marker_path(app_root), "w", encoding="utf-8") as marker_file:
+        json.dump(marker, marker_file)
+
+
+def read_pending_update_marker(app_root):
+    marker_path = get_pending_update_marker_path(app_root)
+    if not os.path.isfile(marker_path):
+        return None
+    with open(marker_path, "r", encoding="utf-8") as marker_file:
+        return json.load(marker_file)
+
+
+def clear_pending_update_marker(app_root):
+    marker_path = get_pending_update_marker_path(app_root)
+    if os.path.isfile(marker_path):
+        os.remove(marker_path)
+
+
+def apply_pending_update(app_root):
+    """Apply a pending update marker synchronously, if one exists.
+
+    Intended to be called by scripts/karaopi_launch.sh right after the app
+    process exits and before relaunching it, so the update is fully applied
+    before the next launch instead of racing with the launcher's own restart
+    loop (which would otherwise instantly relaunch the OLD version).
+
+    Returns True if an update was applied, False if none was pending.
+    """
+    marker = read_pending_update_marker(app_root)
+    if marker is None:
+        return False
+
+    configure_logging(app_root)
+    logging.info("Applying pending KaraoPi update to %s", marker["tag"])
+    try:
+        with tempfile.TemporaryDirectory(prefix="karaopi-update-") as temp_dir:
+            archive_path = download_release_archive(marker["zip_url"], temp_dir)
+            release_root = extract_release_archive(archive_path, temp_dir)
+            sync_release_to_app_root(release_root, app_root)
+        install_requirements(app_root)
+        logging.info("KaraoPi update to %s applied successfully.", marker["tag"])
+    finally:
+        clear_pending_update_marker(app_root)
+    return True
+
+
 def start_background_update(app_root, current_version, relaunch_command, repository=DEFAULT_REPOSITORY):
     update_status = get_release_update_status(current_version, repository=repository)
     if not update_status["update_available"]:
         raise AppUpdateError("KaraoPi is already running the latest release.")
+
+    if os.environ.get("KARAOPI_LAUNCHER"):
+        # Running under scripts/karaopi_launch.sh: just record the pending update.
+        # Its restart loop will apply it synchronously right after this process
+        # exits and before relaunching, instead of racing a detached updater
+        # against the loop's own instant restart (which would relaunch the OLD
+        # version before the update finished downloading/installing).
+        write_pending_update_marker(
+            app_root, repository, update_status["latest_tag"], update_status["zipball_url"]
+        )
+        logging.info(
+            "Recorded pending KaraoPi update to %s for the kiosk launcher to apply",
+            update_status["latest_tag"],
+        )
+        return update_status
 
     updater_command = [
         sys.executable,
@@ -279,19 +346,49 @@ def parse_args(argv=None):
 
     parser = argparse.ArgumentParser(description="KaraoPi GitHub release updater")
     parser.add_argument("--app-root", required=True)
-    parser.add_argument("--repository", required=True)
-    parser.add_argument("--tag", required=True)
-    parser.add_argument("--zip-url", required=True)
-    parser.add_argument("--wait-for-pid", type=int, required=True)
+    parser.add_argument(
+        "--apply-pending",
+        action="store_true",
+        help="Apply a pending update marker synchronously and exit (used by the kiosk launcher)",
+    )
+    parser.add_argument("--repository")
+    parser.add_argument("--tag")
+    parser.add_argument("--zip-url")
+    parser.add_argument("--wait-for-pid", type=int)
     parser.add_argument("--relaunch-command", nargs=argparse.REMAINDER, default=[])
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     parsed_args = parse_args(argv)
+    app_root = os.path.abspath(parsed_args.app_root)
+
+    if parsed_args.apply_pending:
+        try:
+            apply_pending_update(app_root)
+        except Exception as exc:
+            configure_logging(app_root)
+            logging.exception("Failed to apply pending KaraoPi update: %s", exc)
+            return 1
+        return 0
+
+    missing = [
+        name
+        for name, value in (
+            ("--repository", parsed_args.repository),
+            ("--tag", parsed_args.tag),
+            ("--zip-url", parsed_args.zip_url),
+            ("--wait-for-pid", parsed_args.wait_for_pid),
+        )
+        if value is None
+    ]
+    if missing:
+        print(f"Missing required arguments: {', '.join(missing)}", file=sys.stderr)
+        return 1
+
     try:
         run_update(
-            app_root=os.path.abspath(parsed_args.app_root),
+            app_root=app_root,
             repository=parsed_args.repository,
             tag=parsed_args.tag,
             zip_url=parsed_args.zip_url,
@@ -300,7 +397,7 @@ def main(argv=None):
         )
     except Exception as exc:
         try:
-            configure_logging(os.path.abspath(parsed_args.app_root))
+            configure_logging(app_root)
         except Exception:
             pass
         logging.exception("KaraoPi update failed: %s", exc)

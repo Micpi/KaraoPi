@@ -49,6 +49,16 @@ class PreferenceManager:
         "enable_title_tidy": False,
         "metadata_provider": "itunes",
         "itunes_search_country": "US",
+        # KaraoPi customization: branding, theme colors, and QR code appearance.
+        "custom_logo_path": "",
+        "theme_primary_color": "#7b3fe4",
+        "theme_secondary_color": "#ffb020",
+        "qr_code_position": "bottom-left",
+        "qr_code_size": 100,
+        "qr_code_style": "square",
+        "qr_code_fill_color": "#000000",
+        "qr_code_back_color": "#ffffff",
+        "qr_code_logo": "none",
     }
 
     def __init__(self, config_file_path: str = "config.ini", target: object | None = None) -> None:

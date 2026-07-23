@@ -112,8 +112,10 @@ class PlaybackController:
 
         self.events.emit("playback_started")
 
-        # Wait for client to connect
-        max_retries = 100
+        # Wait for client to connect. Generous timeout since Raspberry Pi
+        # hardware encoder warm-up and initial HLS segment fetch over the LAN
+        # can take longer than a few seconds under load.
+        max_retries = 300
         while not self.is_playing and max_retries > 0:
             time.sleep(0.1)
             max_retries -= 1

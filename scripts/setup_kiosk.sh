@@ -42,6 +42,20 @@ if [ ! -f "$INSTALL_DIR/pyproject.toml" ]; then
   exit 1
 fi
 
+if ! command -v uv >/dev/null 2>&1; then
+  echo
+  echo "*** Installing uv (not found) ***"
+  curl -fsSL https://astral.sh/uv/install.sh | sh || echo "Warning: could not install uv automatically."
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo
+  echo "*** Installing ffmpeg (not found) ***"
+  sudo apt-get update -y || true
+  sudo apt-get install -y ffmpeg || echo "Warning: could not install ffmpeg automatically."
+fi
+
 # 1. Boot straight to the desktop with auto-login (removes the login prompt/console).
 if command -v raspi-config >/dev/null 2>&1; then
   echo
@@ -84,7 +98,12 @@ cat > "$LAUNCHER_PATH" <<'LAUNCHER_EOF'
 # Launches KaraoPi in a restart loop and keeps the display awake.
 # Edit KARAOPI_ADMIN_PASSWORD below to lock down admin features (optional).
 
-cd "$(dirname "$0")/.."
+KARAOPI_INSTALL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$KARAOPI_INSTALL_DIR"
+
+# Marks this process as running under the kiosk launcher, so the self-update
+# route records a pending-update marker instead of racing this restart loop.
+export KARAOPI_LAUNCHER=1
 
 # Disable screen blanking/DPMS on X11 sessions (safe no-op on Wayland sessions).
 xset s off >/dev/null 2>&1 || true
@@ -101,6 +120,17 @@ LOG_FILE="$HOME/.pikaraoke/karaopi-launch.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 while true; do
+  # Apply any update recorded by the admin UI before relaunching, so the
+  # restart loop never relaunches the OLD version while an update is pending.
+  if [ -f "$KARAOPI_INSTALL_DIR/.karaopi_update_pending.json" ]; then
+    echo "$(date): applying pending KaraoPi update" >> "$LOG_FILE"
+    if command -v uv >/dev/null 2>&1; then
+      uv run python -m pikaraoke.lib.karaopi_release --apply-pending --app-root "$KARAOPI_INSTALL_DIR" >> "$LOG_FILE" 2>&1
+    else
+      .venv/bin/python -m pikaraoke.lib.karaopi_release --apply-pending --app-root "$KARAOPI_INSTALL_DIR" >> "$LOG_FILE" 2>&1
+    fi
+  fi
+
   echo "$(date): starting KaraoPi" >> "$LOG_FILE"
   if command -v uv >/dev/null 2>&1; then
     uv run pikaraoke "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>&1
@@ -140,6 +170,9 @@ echo
 echo "*** DONE ***"
 echo "KaraoPi is now configured to launch automatically on boot, full-screen, with no visible console."
 echo "Reboot the Raspberry Pi to apply all changes: sudo reboot"
+echo
+echo "Note: re-run this script any time after updating KaraoPi to regenerate $LAUNCHER_PATH"
+echo "with the latest launcher fixes (it is always safe to re-run)."
 echo
 echo "To set an admin password, edit: $LAUNCHER_PATH (KARAOPI_ADMIN_PASSWORD variable)"
 echo "To disable kiosk autostart later, remove: $AUTOSTART_DIR/karaopi.desktop"

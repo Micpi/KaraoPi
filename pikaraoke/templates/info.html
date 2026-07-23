@@ -507,7 +507,7 @@
 					<p class="is-size-7 has-text-grey">
 						{% trans %}On Linux / Raspberry Pi, install it with:{% endtrans %}
 						<code>sudo apt install pulseaudio-utils</code>
-						{% trans %}and restart PiKaraoke.{% endtrans %}
+						{% trans %}and restart KaraoPi.{% endtrans %}
 					</p>
 					{% endif %}
 				</div>
@@ -680,7 +680,7 @@
 					{# MSG: The version of the program "ffmpeg". #}
 					<li><u>{% trans %}FFmpeg version:{% endtrans %}</u> {{ ffmpeg_version }} {% if not is_transpose_enabled %} (missing lib-rubberband, pitch shift is not supported) {% endif %}</li>
 					{# MSG: The version of Pikaraoke running right now. #}
-					<li><u>{% trans %}Pikaraoke version:{% endtrans %}</u> {{ pikaraoke_version }}</li>
+					<li><u>{% trans %}KaraoPi version:{% endtrans %}</u> {{ pikaraoke_version }}</li>
 					</ul>
 				</div>
 			</div>
@@ -725,7 +725,7 @@
 						{# MSG: Help text which explains why updating yt-dlp can fail. The log is a file on the machine running Pikaraoke. #}
 						{% trans -%}
 							* This update link above may fail if you don't have proper file permissions.
-							Check the pikaraoke log for errors.
+						Check the KaraoPi log for errors.
 						{%- endtrans %}
 					</p>
 				</div>
@@ -767,6 +767,124 @@
 			</div>
 		</div>
 
+		{# MSG: Title of the branding and appearance customization section. #}
+		<h1>{% trans %}Branding &amp; Appearance{% endtrans %}</h1>
+
+		<div class="card">
+			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
+				{# MSG: Label for the logo customization section #}
+				<h3 class="title mb-0">{% trans %}Logo{% endtrans %}</h3>
+			</header>
+			<div class="card-content collapsible-content">
+				<div class="content">
+					<div class="has-text-centered mb-4">
+						<img src="{{ url_for('images.logo') }}?v={{ range(1, 999999) | random }}" alt="logo" style="max-height: 120px;" />
+					</div>
+					<form action="{{ url_for('images.upload_logo') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+						<div class="field has-addons">
+							<div class="control is-expanded">
+								<input class="input" type="file" name="logo_file" accept=".png,.jpg,.jpeg,.gif,.webp,.svg" />
+							</div>
+							<div class="control">
+								{# MSG: Button to upload a new custom logo. #}
+								<button type="submit" class="button is-primary is-inverted">{% trans %}Upload logo{% endtrans %}</button>
+							</div>
+						</div>
+					</form>
+					{# MSG: Button to reset the logo back to the default KaraoPi logo. #}
+					<a class="button is-small" href="{{ url_for('images.reset_logo') }}">{% trans %}Reset to default logo{% endtrans %}</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
+				{# MSG: Label for the theme color customization section #}
+				<h3 class="title mb-0">{% trans %}Theme colors{% endtrans %}</h3>
+			</header>
+			<div class="card-content collapsible-content">
+				<div class="content">
+					<div class="field">
+						{# MSG: Label for the primary theme color picker. #}
+						<label class="label">{% trans %}Primary color{% endtrans %}</label>
+						<input id="pref-theme-primary" class="user-preference-input" type="color" data-pref="theme_primary_color" data-start-value="{{ theme_primary_color }}" value="{{ theme_primary_color }}" />
+					</div>
+					<div class="field">
+						{# MSG: Label for the secondary/accent theme color picker. #}
+						<label class="label">{% trans %}Accent color{% endtrans %}</label>
+						<input id="pref-theme-secondary" class="user-preference-input" type="color" data-pref="theme_secondary_color" data-start-value="{{ theme_secondary_color }}" value="{{ theme_secondary_color }}" />
+					</div>
+					<p class="is-size-7 has-text-grey">
+						{# MSG: Help text explaining that theme color changes need a page refresh. #}
+						{% trans %}Reload the page to see color changes take full effect.{% endtrans %}
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
+				{# MSG: Label for the QR code customization section #}
+				<h3 class="title mb-0">{% trans %}QR code{% endtrans %}</h3>
+			</header>
+			<div class="card-content collapsible-content">
+				<div class="content">
+					<div class="field">
+						{# MSG: Label for the QR code position dropdown. #}
+						<label class="label">{% trans %}Position on splash screen{% endtrans %}</label>
+						<div class="select">
+							<select id="pref-qr-position" class="user-preference-input" data-pref="qr_code_position" data-start-value="{{ qr_code_position }}">
+								<option value="bottom-left" {% if qr_code_position == "bottom-left" %}selected{% endif %}>{% trans %}Bottom left{% endtrans %}</option>
+								<option value="bottom-right" {% if qr_code_position == "bottom-right" %}selected{% endif %}>{% trans %}Bottom right{% endtrans %}</option>
+								<option value="top-left" {% if qr_code_position == "top-left" %}selected{% endif %}>{% trans %}Top left{% endtrans %}</option>
+								<option value="top-right" {% if qr_code_position == "top-right" %}selected{% endif %}>{% trans %}Top right{% endtrans %}</option>
+								<option value="center" {% if qr_code_position == "center" %}selected{% endif %}>{% trans %}Center{% endtrans %}</option>
+							</select>
+						</div>
+					</div>
+					<div class="field">
+						{# MSG: Label for the QR code size input. #}
+						<label class="label">{% trans %}Size (pixels){% endtrans %}</label>
+						<input id="pref-qr-size" class="user-preference-input input" type="number" min="60" max="400" step="10" data-pref="qr_code_size" data-start-value="{{ qr_code_size }}" value="{{ qr_code_size }}" />
+					</div>
+					<div class="field">
+						{# MSG: Label for the QR code module style dropdown. #}
+						<label class="label">{% trans %}Style{% endtrans %}</label>
+						<div class="select">
+							<select id="pref-qr-style" class="user-preference-input" data-pref="qr_code_style" data-start-value="{{ qr_code_style }}">
+								<option value="square" {% if qr_code_style == "square" %}selected{% endif %}>{% trans %}Square{% endtrans %}</option>
+								<option value="rounded" {% if qr_code_style == "rounded" %}selected{% endif %}>{% trans %}Rounded{% endtrans %}</option>
+							</select>
+						</div>
+					</div>
+					<div class="field">
+						{# MSG: Label for the QR code foreground color picker. #}
+						<label class="label">{% trans %}Foreground color{% endtrans %}</label>
+						<input id="pref-qr-fill" class="user-preference-input" type="color" data-pref="qr_code_fill_color" data-start-value="{{ qr_code_fill_color }}" value="{{ qr_code_fill_color }}" />
+					</div>
+					<div class="field">
+						{# MSG: Label for the QR code background color picker. #}
+						<label class="label">{% trans %}Background color{% endtrans %}</label>
+						<input id="pref-qr-back" class="user-preference-input" type="color" data-pref="qr_code_back_color" data-start-value="{{ qr_code_back_color }}" value="{{ qr_code_back_color }}" />
+					</div>
+					<div class="field">
+						{# MSG: Label for the QR code center logo dropdown. #}
+						<label class="label">{% trans %}Center logo{% endtrans %}</label>
+						<div class="select">
+							<select id="pref-qr-logo" class="user-preference-input" data-pref="qr_code_logo" data-start-value="{{ qr_code_logo }}">
+								<option value="none" {% if qr_code_logo == "none" %}selected{% endif %}>{% trans %}None{% endtrans %}</option>
+								<option value="mic" {% if qr_code_logo == "mic" %}selected{% endif %}>{% trans %}Microphone icon{% endtrans %}</option>
+								<option value="custom" {% if qr_code_logo == "custom" %}selected{% endif %}>{% trans %}My custom logo{% endtrans %}</option>
+							</select>
+						</div>
+					</div>
+					<div class="has-text-centered">
+						<img src="{{ url_for('images.qrcode') }}?v={{ range(1, 999999) | random }}" alt="qrcode preview" style="max-width: 200px;" />
+					</div>
+				</div>
+			</div>
+		</div>
+
 		{% if is_pi %}
 
 			{# MSG: Title of the updates section. #}
@@ -781,7 +899,7 @@
 					<div class="content">
 						{# MSG: Explainitory text which explains why you might want to expand the filesystem. #}
 						<p>{% trans -%}
-							If you just installed the pre-built pikaraoke pi image and your SD card is larger than 4GB,
+							If you just installed the pre-built KaraoPi image and your SD card is larger than 4GB,
 							you may want to expand the filesystem to utilize the remaining space. You only need to do this once.
 							This will reboot the system.
 						{%- endtrans %}</p>
@@ -825,7 +943,7 @@
 
 					<div class="buttons">
 						{# MSG: Text for button which turns off Pikaraoke for everyone using it at your house. #}
-						<a id="quit-link" class="button is-primary" href="{{ url_for('admin.quit') }}">{% trans %}Quit Pikaraoke{% endtrans %}</a>
+						<a id="quit-link" class="button is-primary" href="{{ url_for('admin.quit') }}">{% trans %}Quit KaraoPi{% endtrans %}</a>
 						{% if is_pi or is_linux %}
 							{# MSG: Text for button which reboots the machine running Pikaraoke. #}
 							<a id="restart-link" class="button is-primary" href="{{ url_for('admin.reboot') }}">{% trans %}Reboot System{% endtrans %}</a>

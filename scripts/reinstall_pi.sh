@@ -71,6 +71,41 @@ else
 fi
 
 echo
+echo "*** CHECKING SYSTEM DEPENDENCIES ***"
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "ffmpeg not found, installing via apt..."
+  sudo apt-get update -y || true
+  sudo apt-get install -y ffmpeg || echo "Warning: could not install ffmpeg automatically. Install it manually: sudo apt-get install ffmpeg"
+else
+  echo "ffmpeg already installed: $(ffmpeg -version | head -n 1)"
+fi
+
+if ! command -v deno >/dev/null 2>&1 && ! command -v node >/dev/null 2>&1; then
+  echo "No JS runtime found (deno/node), installing Deno..."
+  curl -fsSL https://deno.land/install.sh | sh || echo "Warning: could not install Deno automatically."
+  export PATH="$HOME/.deno/bin:$PATH"
+else
+  echo "JS runtime already available ($(command -v deno || command -v node))."
+fi
+
+if ! command -v chromium-browser >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1; then
+  echo "Chromium not found, installing via apt (needed for the kiosk splash screen)..."
+  sudo apt-get update -y || true
+  sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium || echo "Warning: could not install Chromium automatically. Install it manually."
+else
+  echo "Chromium already installed."
+fi
+
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv not found, installing it (this is what KaraoPi uses to manage its Python environment)..."
+  curl -fsSL https://astral.sh/uv/install.sh | sh || echo "Warning: could not install uv automatically. Install it manually: https://docs.astral.sh/uv/getting-started/installation/"
+  export PATH="$HOME/.local/bin:$PATH"
+else
+  echo "uv already installed: $(uv --version)"
+fi
+
+echo
 echo "*** CLONING LATEST KARAOPI SOURCE ***"
 if [ -d "$INSTALL_DIR" ]; then
   echo "Target directory $INSTALL_DIR already exists, removing it first."
@@ -91,13 +126,12 @@ else
 fi
 
 echo
-echo "*** INSTALLING DEPENDENCIES ***"
-echo "Note: this requires ffmpeg and a JS runtime (deno/node) to already be installed on this system."
+echo "*** INSTALLING PYTHON DEPENDENCIES ***"
 if command -v uv >/dev/null 2>&1; then
   echo "Using uv to sync dependencies."
   uv sync
 else
-  echo "uv not found, falling back to a plain Python virtual environment."
+  echo "uv still not available, falling back to a plain Python virtual environment."
   python3 -m venv .venv
   . .venv/bin/activate
   pip install --upgrade pip

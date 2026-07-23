@@ -18,6 +18,35 @@
   <link rel="icon" type="image/png" href="{{  url_for('static', filename='images/microphone.png') }}">
   <link rel="stylesheet" href="{{  url_for('static', filename='fontello/css/fontello.css') }}?v=2">
 
+  <style>
+    /* KaraoPi theme customization (from Settings > Theme colors) */
+    :root {
+      --karaopi-primary: {{ theme_primary_color }};
+      --karaopi-secondary: {{ theme_secondary_color }};
+    }
+    .button.is-primary:not(.is-inverted):not(.is-outlined),
+    .tag.is-primary,
+    .has-background-primary,
+    .navbar-item.is-active {
+      background-color: var(--karaopi-primary) !important;
+      border-color: var(--karaopi-primary) !important;
+    }
+    .button.is-primary.is-inverted,
+    .button.is-primary.is-outlined {
+      color: var(--karaopi-primary) !important;
+      border-color: var(--karaopi-primary) !important;
+    }
+    a:not(.button),
+    .has-text-primary,
+    .has-text-link {
+      color: var(--karaopi-secondary) !important;
+    }
+    .has-text-warning,
+    .button.is-warning:not(.is-inverted):not(.is-outlined) {
+      color: var(--karaopi-secondary) !important;
+    }
+  </style>
+
   <script>
     window.pikaraokeConfig = {
       basePath: "{{ base_path }}",
@@ -252,7 +281,7 @@
           </a>
           <a id="info" class="navbar-item" href="{{ url_for('info.info') }}">
             <i class="icon icon-info-circled-1" title="Info"></i>
-            <span>Pikaraoke</span>&nbsp;&nbsp;
+            <span>KaraoPi</span>&nbsp;&nbsp;
           </a>
         </div>
       </div>

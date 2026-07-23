@@ -12,6 +12,14 @@ from pikaraoke.routes.splash import _get_active_score_phrases
 _ = flask_babel.gettext
 
 _SCORE_PHRASE_KEYS = {"low_score_phrases", "mid_score_phrases", "high_score_phrases"}
+_QR_CODE_KEYS = {
+    "qr_code_position",
+    "qr_code_size",
+    "qr_code_style",
+    "qr_code_fill_color",
+    "qr_code_back_color",
+    "qr_code_logo",
+}
 
 preferences_bp = Blueprint("preferences", __name__)
 
@@ -36,6 +44,8 @@ def change_preferences(query):
             broadcast_event("preferences_update", {"key": preference, "value": val})
             if preference in _SCORE_PHRASE_KEYS:
                 broadcast_event("score_phrases_update", _get_active_score_phrases(k))
+            if preference in _QR_CODE_KEYS:
+                k.generate_qr_code()
         return jsonify([success, message])
     else:
         # MSG: Message shown after trying to change preferences without admin permissions.

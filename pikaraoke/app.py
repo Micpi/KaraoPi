@@ -158,6 +158,16 @@ def inject_path_config() -> dict[str, str]:
     }
 
 
+@app.context_processor
+def inject_theme_config() -> dict[str, str]:
+    """Expose KaraoPi theme color preferences to every template."""
+    k = get_karaoke_instance()
+    return {
+        "theme_primary_color": k.preferences.get_or_default("theme_primary_color"),
+        "theme_secondary_color": k.preferences.get_or_default("theme_secondary_color"),
+    }
+
+
 babel.init_app(app, locale_selector=get_locale)
 socketio.init_app(app)
 setup_socket_events(socketio)
@@ -293,7 +303,7 @@ def main() -> None:
 
     # expose shared configuration variables to the flask app
     app.config["ADMIN_PASSWORD"] = args.admin_password
-    app.config["SITE_NAME"] = "PiKaraoke"
+    app.config["SITE_NAME"] = "KaraoPi"
 
     # Expose some functions to jinja templates
     app.jinja_env.globals.update(filename_from_path=k.song_manager.display_name_from_path)

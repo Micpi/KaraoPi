@@ -89,6 +89,16 @@ Launches the player in "headed" mode via your default browser. Scan the QR code 
 
 See `uv run pikaraoke --help` for available options.
 
+## Customization (Settings)
+
+From the admin `Info` page, under **Branding & Appearance**, you can customize:
+
+- **Logo**: upload your own logo (PNG/JPG/GIF/WEBP/SVG) or reset to the default KaraoPi logo.
+- **Theme colors**: primary and accent colors used across the web UI.
+- **QR code**: position on the splash screen (any corner or center), size, square/rounded module style, foreground/background colors, and an optional center logo — either a built-in microphone icon or your own uploaded logo.
+
+Color and QR changes apply after a page/splash reload.
+
 ## Application updates
 
 KaraoPi installations deployed from this repository (git clone based, e.g. on a Raspberry Pi) can self-update directly from GitHub Releases:

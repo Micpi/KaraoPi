@@ -67,19 +67,24 @@
   </div>
 </div>
 
-<div id="bottom-container" class="overlay">
-  <div id="qr-code"{% if hide_url %} style="display: none"{% endif %}>
+<div
+  id="qr-code-container"
+  class="overlay qr-position-{{ qr_code_position }}"
+  {% if hide_url %} style="display: none"{% endif %}
+>
+  <div id="qr-code">
     <img
       src="{{ url_for('images.qrcode') }}"
-      width="100px"
-      style="image-rendering: pixelated"
+      width="{{ qr_code_size }}px"
       alt="qrcode"
     />
     <div class="is-size-6 stroke">
       <div>&nbsp;{{ url }}</div>
     </div>
   </div>
-  <div></div>
+</div>
+
+<div id="bottom-container" class="overlay">
   <div
     id="up-next"
     class="has-text-warning is-size-5 stroke has-text-right"
@@ -130,7 +135,7 @@
     <p>
       {# MSG: Prompt for interaction in order to enable video autoplay. #} {%
       trans %}Due to limitations with browser permissions, you must interact
-      with the page once before it allows autoplay of videos. Pikaraoke will not
+      with the page once before it allows autoplay of videos. KaraoPi will not
       play otherwise. Click the button below to
       <a onClick="handleConfirmation()">confirm</a>.{% endtrans %}
     </p>
@@ -236,14 +241,38 @@
     left: 0px;
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: flex-end;
-  }
-  #qr-code {
-    max-width: 25%;
   }
   #up-next {
     max-width: 75%;
+  }
+  /* KaraoPi: QR code position/size is customizable from Settings */
+  #qr-code-container {
+    position: absolute;
+    z-index: 1;
+    padding: 10px 20px;
+  }
+  #qr-code-container.qr-position-top-left {
+    top: 0px;
+    left: 0px;
+  }
+  #qr-code-container.qr-position-top-right {
+    top: 0px;
+    right: 0px;
+  }
+  #qr-code-container.qr-position-bottom-left {
+    bottom: 0px;
+    left: 0px;
+  }
+  #qr-code-container.qr-position-bottom-right {
+    bottom: 0px;
+    right: 0px;
+  }
+  #qr-code-container.qr-position-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
   .video-container {
     position: absolute;

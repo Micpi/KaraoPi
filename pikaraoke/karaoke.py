@@ -31,6 +31,7 @@ from pikaraoke.lib.library_scanner import LibraryScanner, ScanResult
 from pikaraoke.lib.network import get_ip
 from pikaraoke.lib.playback_controller import PlaybackController
 from pikaraoke.lib.preference_manager import PreferenceManager
+from pikaraoke.lib.qr_generator import generate_qr_code as render_custom_qr_code
 from pikaraoke.lib.queue_manager import QueueManager
 from pikaraoke.lib.song_manager import SongManager
 from pikaraoke.lib.sound_manager import SoundManager
@@ -70,7 +71,7 @@ class Karaoke:
     qr_code_path: str | None = None
     base_path: str = os.path.dirname(__file__)
     loop_interval: int = 500  # in milliseconds
-    default_logo_path: str = os.path.join(base_path, "static", "images", "logo.png")
+    default_logo_path: str = os.path.join(base_path, "static", "images", "karaopi-logo.svg")
     default_bg_music_path: str = os.path.join(base_path, "static", "music")
     default_bg_video_path: str = os.path.join(base_path, "static", "video", "night_sea.mp4")
     screensaver_timeout: int
@@ -411,22 +412,34 @@ class Karaoke:
         logging.debug("\n\n" + output)
 
     def generate_qr_code(self) -> None:
-        """Generate a QR code image for the web interface URL."""
+        """Generate a QR code image for the web interface URL.
+
+        Uses the user's QR code style/color/logo preferences (KaraoPi customization).
+        """
         logging.debug("Generating URL QR code")
-        qr = qrcode.QRCode(
-            version=1,
-            box_size=1,
-            border=4,
-        )
-        qr.add_data(self.url)
-        qr.make()
-        img = qr.make_image(image_factory=PyPNGImage)
         # Use writable data directory instead of program directory.
         # Include the port so multiple instances on the same host don't
         # overwrite each other's QR code (see issue #836).
         data_dir = get_data_directory()
         self.qr_code_path = os.path.join(data_dir, f"qrcode-{self.port}.png")
-        img.save(self.qr_code_path)  # type: ignore[arg-type]
+
+        try:
+            render_custom_qr_code(
+                self.url,
+                self.qr_code_path,
+                style=self.preferences.get_or_default("qr_code_style"),
+                fill_color=self.preferences.get_or_default("qr_code_fill_color"),
+                back_color=self.preferences.get_or_default("qr_code_back_color"),
+                logo=self.preferences.get_or_default("qr_code_logo"),
+                custom_logo_path=self.preferences.get_or_default("custom_logo_path") or None,
+            )
+        except Exception as exc:
+            logging.warning(f"Custom QR code generation failed, falling back to plain QR: {exc}")
+            qr = qrcode.QRCode(version=1, box_size=1, border=4)
+            qr.add_data(self.url)
+            qr.make()
+            img = qr.make_image(image_factory=PyPNGImage)
+            img.save(self.qr_code_path)  # type: ignore[arg-type]
 
     def send_notification(self, message: str, color: str = "primary") -> None:
         """Send a notification to the web interface.
@@ -604,9 +617,23 @@ class Karaoke:
                     song = self.queue_manager.pop_next()
                     if not song:
                         continue
-                    result = self.playback_controller.play_file(
-                        song["file"], song["user"], song["semitones"]
-                    )
+
+                    # Retry playback a couple of times before giving up: transient
+                    # failures (slow hardware encoder warm-up, brief network hiccups
+                    # on the Pi) shouldn't silently skip a song on the first attempt.
+                    max_play_attempts = 3
+                    result = None
+                    for attempt in range(1, max_play_attempts + 1):
+                        result = self.playback_controller.play_file(
+                            song["file"], song["user"], song["semitones"]
+                        )
+                        if result.success:
+                            break
+                        if attempt < max_play_attempts:
+                            logging.warning(
+                                f"Playback attempt {attempt} failed for '{song['file']}', retrying..."
+                            )
+                            time.sleep(1)
 
                     if not result.success and result.error:
                         self.log_and_send(result.error, "danger")
