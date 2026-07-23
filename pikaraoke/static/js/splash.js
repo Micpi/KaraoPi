@@ -356,20 +356,40 @@ const handleNowPlayingUpdate = (np) => {
     $("#video-source").attr("src", "");
     video.load();
     $("#video-source").attr("src", streamUrl);
-
+    
     if (streamUrl.endsWith('.m3u8')) {
       const useNativeHLS = video.canPlayType('application/vnd.apple.mpegurl') && !isChrome && !isEdge && !isMobileSafari;
       if (useNativeHLS) {
         video.src = streamUrl;
+        video.load();
+        playVideoRobustly(video).catch(e => {
+            console.error("Could not start native HLS playback:", e);
+            endSong("failed to start");
+        });
       } else {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
         hlsInstance = new Hls({ startPosition: 0 });
+        // Attend que HLS.js soit prêt avant de lancer la lecture
+        hlsInstance.once(Hls.Events.MEDIA_ATTACHED, function () {
+          console.log("HLS.js media attached, attempting to play.");
+          playVideoRobustly(video).catch(e => {
+              console.error("Could not start HLS.js playback:", e);
+              endSong("failed to start");
+          });
+        });
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
       }
+    } else {
+      // Pour les non-HLS (MP4, etc.)
+      video.src = streamUrl;
+      video.load();
+      playVideoRobustly(video).catch(e => {
+          console.error("Could not start video playback:", e);
+          endSong("failed to start");
+      });
     }
 
-    video.load();
     if (volume !== np.volume) {
       volume = np.volume;
       video.volume = volume;
@@ -384,11 +404,6 @@ const handleNowPlayingUpdate = (np) => {
     }
 
     $("#video-container").show();
-
-    playVideoRobustly(video).catch(e => {
-        console.error("Could not start video playback:", e);
-        endSong("failed to start");
-    })
 
     if (np.now_playing_position && isMediaPlaying(video)) {
       if (Math.abs(video.currentTime - np.now_playing_position) > 2) {
