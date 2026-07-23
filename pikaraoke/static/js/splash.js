@@ -8,7 +8,7 @@ let showMenu = false;
 let menuButtonVisible = false;
 let autoplayConfirmed = false;
 let volume = 0.85;
-const playbackStartTimeout = 10000;
+const playbackStartTimeout = 15000;
 const bgMediaResumeDelay = 2000;
 let isScoreShown = false;
 const hasBgVideo = PikaraokeConfig.hasBgVideo;
@@ -26,6 +26,8 @@ let scoreReviews = {
 let isMaster = false;
 let uiScale = null;
 let clockIntervalId = null;
+let splashDomReady = false;
+let pendingNowPlaying = null;
 
 // Browser detection
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -268,8 +270,9 @@ const setupScreensaver = () => {
  * @returns {Promise<void>} Une promesse qui se résout lorsque la lecture commence, ou est rejetée après plusieurs échecs.
  */
 async function playVideoRobustly(videoElement) {
-    const maxRetries = 10; // 10 tentatives sur 5 secondes
+    const maxRetries = 30; // Up to 15 seconds on slower Raspberry Pis/USB drives
     const retryDelay = 500; // 500ms entre chaque tentative
+    let lastError = null;
 
     for (let i = 0; i < maxRetries; i++) {
         try {
@@ -280,13 +283,17 @@ async function playVideoRobustly(videoElement) {
                 return; // Succès, on sort de la fonction
             }
         } catch (error) {
+            lastError = error;
             console.warn(`Attempt ${i + 1} to play video failed:`, error.name, error.message);
-            if (i === maxRetries - 1) {
-                throw new Error(`Failed to play video after ${maxRetries} attempts. Last error: ${error.message}`);
-            }
         }
         await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
+
+    // Previously this function resolved successfully when readyState never
+    // reached HAVE_CURRENT_DATA. That left a black video container and kept
+    // currentVideoUrl marked as loaded until the whole page was refreshed.
+    const detail = lastError ? `${lastError.name}: ${lastError.message}` : `readyState=${videoElement.readyState}`;
+    throw new Error(`Failed to play video after ${maxRetries} attempts (${detail})`);
 }
 
 const handleNowPlayingUpdate = (np) => {
@@ -369,9 +376,10 @@ const handleNowPlayingUpdate = (np) => {
       } else {
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
         hlsInstance = new Hls({ startPosition: 0 });
-        // Attend que HLS.js soit prêt avant de lancer la lecture
-        hlsInstance.once(Hls.Events.MEDIA_ATTACHED, function () {
-          console.log("HLS.js media attached, attempting to play.");
+        // MEDIA_ATTACHED is too early on slower devices. Wait until the
+        // manifest has been parsed and HLS has started filling the media.
+        hlsInstance.once(Hls.Events.MANIFEST_PARSED, function () {
+          console.log("HLS.js manifest parsed, attempting to play.");
           playVideoRobustly(video).catch(e => {
               console.error("Could not start HLS.js playback:", e);
               endSong("failed to start");
@@ -402,8 +410,6 @@ const handleNowPlayingUpdate = (np) => {
     } else {
       duration.hide();
     }
-
-    $("#video-container").show();
 
     if (np.now_playing_position && isMediaPlaying(video)) {
       if (Math.abs(video.currentTime - np.now_playing_position) > 2) {
@@ -673,7 +679,13 @@ const setupSocketEvents = () => {
       socket.emit("clear_notification");
     }
   });
-  socket.on("now_playing", handleNowPlayingUpdate);
+  socket.on("now_playing", (state) => {
+    if (splashDomReady) {
+      handleNowPlayingUpdate(state);
+    } else {
+      pendingNowPlaying = state;
+    }
+  });
   socket.on("preferences_update", applyPreferenceUpdate);
   socket.on("preferences_reset", applyPreferencesReset);
   socket.on("score_phrases_update", (phrases) => { scoreReviews = phrases; });
@@ -745,6 +757,11 @@ $(function () {
   setupOverlayMenus();
   setupVideoPlayer();
   setupBackgroundMusicPlayer();
+  splashDomReady = true;
+  if (pendingNowPlaying) {
+    handleNowPlayingUpdate(pendingNowPlaying);
+    pendingNowPlaying = null;
+  }
 
   // Handle browser compatibility
   handleUnsupportedBrowser();

@@ -56,6 +56,13 @@ def setup_socket_events(socketio):
             socketio.emit("splash_role", "slave", room=sid)
             logging.info(f"Slave splash screens assigned: {sid}")
 
+        # A playback event may have been emitted while Chromium was still
+        # loading or while Socket.IO was reconnecting. Always send the current
+        # state to a newly registered splash so it can recover without a
+        # manual page reload.
+        k = get_karaoke_instance()
+        socketio.emit("now_playing", k.get_now_playing(), room=sid)
+
     @socketio.on("playback_position")
     def handle_playback_position(position: float) -> None:
         """Handle playback_position WebSocket event from the master splash screen.
