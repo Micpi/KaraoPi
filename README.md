@@ -132,6 +132,18 @@ If your Raspberry Pi runs KaraoPi from this repository, you can publish a GitHub
 
 If the update fails, inspect `karaopi-update.log` in the application directory on the Raspberry Pi.
 
+### Clean reinstall on Raspberry Pi
+
+If you need to wipe an old KaraoPi/PiKaraoke installation and install the latest published release from scratch, run `scripts/reinstall_pi.sh` directly on the Raspberry Pi:
+
+```
+curl -O https://raw.githubusercontent.com/Micpi/KaraoPi/main/scripts/reinstall_pi.sh
+chmod +x reinstall_pi.sh
+./reinstall_pi.sh
+```
+
+The script searches common install locations, stops any running KaraoPi process, asks for confirmation before deleting the old installation(s) it finds (your downloaded songs in `~/pikaraoke-songs` are never touched), then clones the repository, checks out the latest release tag, and runs `setup.sh` automatically.
+
 ### Publishing a release
 
 This repository includes a fully automated release publication script: `scripts/publish_release.py`. It requires a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable set to a GitHub personal access token with `repo` scope.
