@@ -130,4 +130,15 @@ def generate_qr_code(
         position = ((img.width - center_logo.width) // 2, (img.height - center_logo.height) // 2)
         img.paste(center_logo, position, center_logo)
 
-    img.convert("RGB").save(output_path, "PNG")
+    # Rend le fond semi-transparent (30 % d'opacité)
+    pixels = img.load()
+
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, a = pixels[x, y]
+
+            # Pixels du fond (blanc)
+            if r > 245 and g > 245 and b > 245:
+                pixels[x, y] = (255, 255, 255, 77)  # 77 = 30 % de 255
+
+    img.save(output_path, "PNG")
