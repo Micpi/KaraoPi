@@ -155,9 +155,7 @@
 						{{ _('Are you sure you want to update KaraoPi right now? Playback and downloads will stop briefly while the system installs the new release.') | tojson }}
 					)
 				) {
-					$.post("{{ url_for('admin.self_update') }}");
-					showNotification({{ _('Update started... The system will restart shortly.') | tojson }}, "is-info", 10000);
-					$(this).addClass("is-loading").prop("disabled", true);
+					location.href = this.href;
 				}
 			});
 
