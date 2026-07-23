@@ -104,27 +104,29 @@ const hideVideo = () => {
 }
 
 const endSong = async (reason = null, showScore = false) => {
-  if (showScore && !PikaraokeConfig.disableScore) {
-    isScoreShown = true;
-    await startScore(withBasePath("/static/"));
-    isScoreShown = false;
-  }
-  currentVideoUrl = null;
-  if (hlsInstance) {
-    hlsInstance.destroy();
-    hlsInstance = null;
-  }
-  const video = getVideoPlayer();
-  video.pause();
-  $("#video-source").attr("src", "");
-  video.load();
-  hideVideo();
-  if (isMaster) {
-    socket.emit("end_song", reason);
-  } else {
-    console.log("Slave active (read-only): skipping end_song emission");
-  }
-}
+    if (showScore && !PikaraokeConfig.disableScore) {
+        isScoreShown = true;
+        await startScore(withBasePath("/static/"));
+        isScoreShown = false;
+    }
+    currentVideoUrl = null;
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+    const video = getVideoPlayer();
+    video.pause();
+    // It's safer to set src to an empty string to detach the media source
+    video.src = "";
+    video.removeAttribute("src");
+    video.load();
+    hideVideo();
+    if (isMaster) {
+        socket.emit("end_song", reason);
+    } else {
+        console.log("Slave active (read-only): skipping end_song emission");
+    }
+};
 
 const getBackgroundMusicPlayer = () => document.getElementById('background-music');
 const getBackgroundVideoPlayer = () => document.getElementById('bg-video');
@@ -258,6 +260,35 @@ const setupScreensaver = () => {
   }
 }
 
+/**
+ * Tente de manière robuste de lancer la lecture d'un élément vidéo.
+ * Gère les erreurs d'autoplay en réessayant périodiquement.
+ *
+ * @param {HTMLVideoElement} videoElement - L'élément vidéo à lancer.
+ * @returns {Promise<void>} Une promesse qui se résout lorsque la lecture commence, ou est rejetée après plusieurs échecs.
+ */
+async function playVideoRobustly(videoElement) {
+    const maxRetries = 10; // 10 tentatives sur 5 secondes
+    const retryDelay = 500; // 500ms entre chaque tentative
+
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            // On s'assure que la source est bien chargée
+            if (videoElement.readyState >= 2) { // HAVE_CURRENT_DATA
+                await videoElement.play();
+                console.log('Video playback started successfully.');
+                return; // Succès, on sort de la fonction
+            }
+        } catch (error) {
+            console.warn(`Attempt ${i + 1} to play video failed:`, error.name, error.message);
+            if (i === maxRetries - 1) {
+                throw new Error(`Failed to play video after ${maxRetries} attempts. Last error: ${error.message}`);
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+}
+
 const handleNowPlayingUpdate = (np) => {
   nowPlaying = np;
   if (np.now_playing) {
@@ -354,11 +385,10 @@ const handleNowPlayingUpdate = (np) => {
 
     $("#video-container").show();
 
-    video.play().catch(err => {
-      console.error('Play failed:', err);
-      // Retry once if it was an autoplay block
-      setTimeout(() => video.play(), 1000);
-    });
+    playVideoRobustly(video).catch(e => {
+        console.error("Could not start video playback:", e);
+        endSong("failed to start");
+    })
 
     if (np.now_playing_position && isMediaPlaying(video)) {
       if (Math.abs(video.currentTime - np.now_playing_position) > 2) {
