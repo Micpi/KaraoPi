@@ -212,8 +212,8 @@ class TestFileResolverInit:
         assert fr.file_extension == ".mp4"
         assert fr.tmp_dir == "/tmp/12345"
         assert fr.duration == 180
-        assert fr.streaming_format == "hls"
-        assert ".m3u8" in fr.output_file
+        assert fr.streaming_format == "mp4"
+        assert ".mp4" in fr.output_file
 
     @patch("pikaraoke.lib.file_resolver.get_media_duration", return_value=200)
     @patch("pikaraoke.lib.file_resolver.create_tmp_dir")

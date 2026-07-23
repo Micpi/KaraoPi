@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 import subprocess
 import time
 from dataclasses import dataclass
@@ -65,7 +64,7 @@ class StreamManager:
     def __init__(
         self,
         preferences: PreferenceManager,
-        streaming_format: str = "hls",
+        streaming_format: str = "mp4",
         base_path: str = "",
     ) -> None:
         """Initialize the stream manager.
@@ -125,17 +124,21 @@ class StreamManager:
             logging.error(error_message)
             return PlaybackResult(success=False, error=error_message)
 
-        # Set stream URL based on format
-        if is_hls:
+        # Compatible MP4/WebM files can be served from their original location.
+        # Avoiding a full copy to the SD card makes playback effectively
+        # immediate and removes needless flash wear.
+        if not requires_transcoding:
+            stream_url_path = self._with_base_path(f"/stream/direct/{fr.stream_uid}")
+        elif is_hls:
             stream_url_path = self._with_base_path(f"/stream/{fr.stream_uid}.m3u8")
         else:
-            if complete_transcode_before_play or not requires_transcoding:
+            if complete_transcode_before_play:
                 stream_url_path = self._with_base_path(f"/stream/full/{fr.stream_uid}")
             else:
                 stream_url_path = self._with_base_path(f"/stream/{fr.stream_uid}.mp4")
 
         if not requires_transcoding:
-            is_transcoding_complete = self._copy_file(file_path, fr.output_file)
+            is_transcoding_complete = bool(fr.file_path and os.path.isfile(fr.file_path))
             is_buffering_complete = True
         else:
             is_transcoding_complete, is_buffering_complete = self._transcode_file(
@@ -160,26 +163,6 @@ class StreamManager:
             error_message = _("Failed to prepare stream")
             logging.error(error_message)
             return PlaybackResult(success=False, error=error_message)
-
-    def _copy_file(self, src_path: str, dest_path: str) -> bool:
-        """Copy a file that doesn't need transcoding.
-
-        Args:
-            src_path: Source file path.
-            dest_path: Destination file path.
-
-        Returns:
-            True if copy succeeded, False otherwise.
-        """
-        shutil.copy(src_path, dest_path)
-        max_retries = 5
-        while max_retries > 0:
-            if os.path.exists(dest_path):
-                return True
-            max_retries -= 1
-            time.sleep(1)
-        logging.debug(f"Copying file failed: {dest_path}")
-        return False
 
     def _transcode_file(self, fr: FileResolver, semitones: int, is_hls: bool) -> tuple[bool, bool]:
         """Transcode a file using FFmpeg.
@@ -293,7 +276,7 @@ class StreamManager:
                 f for f in os.listdir(fr.tmp_dir) if stream_uid_str in f and f.endswith(".m4s")
             ]
             segment_count = len(segment_files)
-            min_segments = 3
+            min_segments = 2
 
             if segment_count >= min_segments:
                 stream_size = fr.get_current_stream_size()

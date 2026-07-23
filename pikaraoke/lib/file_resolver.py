@@ -114,7 +114,7 @@ class FileResolver:
     file_extension: str | None = None
     ass_file_path: str | None = None
 
-    def __init__(self, file_path: str, streaming_format: str = "hls") -> None:
+    def __init__(self, file_path: str, streaming_format: str = "mp4") -> None:
         """Initialize the FileResolver with a media file path.
 
         Args:

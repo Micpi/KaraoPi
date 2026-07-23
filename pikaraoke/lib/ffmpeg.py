@@ -152,7 +152,10 @@ def build_ffmpeg_cmd(
             ar=48000,  # Standard sample rate
             preset="ultrafast",
             f="hls",
-            hls_time=3,
+            # Short initial segments reduce the delay before Chromium can
+            # start while retaining enough buffered media for smooth playback.
+            hls_init_time=1,
+            hls_time=2,
             hls_list_size=0,
             hls_playlist_type="event",
             hls_segment_type="fmp4",

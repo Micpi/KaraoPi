@@ -311,29 +311,39 @@ const setupScreensaver = () => {
  * @returns {Promise<void>} Une promesse qui se résout lorsque la lecture commence, ou est rejetée après plusieurs échecs.
  */
 async function playVideoRobustly(videoElement) {
-    const maxRetries = 30; // Up to 15 seconds on slower Raspberry Pis/USB drives
-    const retryDelay = 500; // 500ms entre chaque tentative
+    const maxRetries = 3;
     let lastError = null;
 
     for (let i = 0; i < maxRetries; i++) {
         try {
-            // On s'assure que la source est bien chargée
-            if (videoElement.readyState >= 2) { // HAVE_CURRENT_DATA
-                await videoElement.play();
-                console.log('Video playback started successfully.');
-                return; // Succès, on sort de la fonction
-            }
+            // Calling play immediately lets Chromium start fetching and
+            // decoding instead of polling readyState every 500 ms.
+            await Promise.race([
+                videoElement.play(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("playback start timeout")), 15000)
+                ),
+            ]);
+            console.log('Video playback started successfully.');
+            return;
         } catch (error) {
             lastError = error;
             console.warn(`Attempt ${i + 1} to play video failed:`, error.name, error.message);
+            if (error.name === "NotAllowedError") break;
+            await new Promise(resolve => {
+                const done = () => {
+                    videoElement.removeEventListener("canplay", done);
+                    videoElement.removeEventListener("error", done);
+                    resolve();
+                };
+                videoElement.addEventListener("canplay", done, { once: true });
+                videoElement.addEventListener("error", done, { once: true });
+                setTimeout(done, 750);
+            });
         }
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
 
-    // Previously this function resolved successfully when readyState never
-    // reached HAVE_CURRENT_DATA. That left a black video container and kept
-    // currentVideoUrl marked as loaded until the whole page was refreshed.
-    const detail = lastError ? `${lastError.name}: ${lastError.message}` : `readyState=${videoElement.readyState}`;
+    const detail = lastError ? `${lastError.name}: ${lastError.message}` : "unknown error";
     throw new Error(`Failed to play video after ${maxRetries} attempts (${detail})`);
 }
 
@@ -401,10 +411,15 @@ const handleNowPlayingUpdate = (np) => {
   if (np.now_playing_url && np.now_playing_url !== currentVideoUrl) {
     currentVideoUrl = np.now_playing_url;
     const streamUrl = np.now_playing_url;
-    $("#video-source").attr("src", "");
-    video.load();
-    $("#video-source").attr("src", streamUrl);
-    
+
+    video.pause();
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
+    video.removeAttribute("src");
+    $("#video-source").removeAttr("src");
+
     if (streamUrl.endsWith('.m3u8')) {
       const useNativeHLS = video.canPlayType('application/vnd.apple.mpegurl') && !isChrome && !isEdge && !isMobileSafari;
       if (useNativeHLS) {
@@ -415,8 +430,12 @@ const handleNowPlayingUpdate = (np) => {
             if (!recoverSplash("native HLS failed to start")) endSong("failed to start");
         });
       } else {
-        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-        hlsInstance = new Hls({ startPosition: 0 });
+        hlsInstance = new Hls({
+          startPosition: 0,
+          startFragPrefetch: true,
+          maxBufferLength: 12,
+          backBufferLength: 30,
+        });
         // MEDIA_ATTACHED is too early on slower devices. Wait until the
         // manifest has been parsed and HLS has started filling the media.
         hlsInstance.once(Hls.Events.MANIFEST_PARSED, function () {
@@ -429,13 +448,17 @@ const handleNowPlayingUpdate = (np) => {
         hlsInstance.on(Hls.Events.ERROR, function (_event, data) {
           if (data.fatal) {
             console.error("Fatal HLS error:", data);
-            if (!recoverSplash(`fatal HLS error: ${data.type}`)) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              hlsInstance.startLoad();
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hlsInstance.recoverMediaError();
+            } else if (!recoverSplash(`fatal HLS error: ${data.type}`)) {
               endSong("fatal HLS error");
             }
           }
         });
-        hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
+        hlsInstance.loadSource(streamUrl);
       }
     } else {
       // Pour les non-HLS (MP4, etc.)

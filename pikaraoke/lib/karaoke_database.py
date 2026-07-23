@@ -61,6 +61,12 @@ class KaraokeDatabase:
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        # WAL with NORMAL durability avoids an fsync for every small library
+        # update while remaining crash-safe. Keep temporary sort/index data in
+        # RAM and wait briefly instead of failing immediately on a busy DB.
+        conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA temp_store = MEMORY")
+        conn.execute("PRAGMA busy_timeout = 5000")
         return conn
 
     def _create_schema(self) -> None:

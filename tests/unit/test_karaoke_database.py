@@ -26,6 +26,11 @@ class TestInit:
         mode = db._conn.execute("PRAGMA journal_mode").fetchone()[0]
         assert mode == "wal"
 
+    def test_performance_pragmas(self, db):
+        assert db._conn.execute("PRAGMA synchronous").fetchone()[0] == 1
+        assert db._conn.execute("PRAGMA temp_store").fetchone()[0] == 2
+        assert db._conn.execute("PRAGMA busy_timeout").fetchone()[0] == 5000
+
     def test_user_version(self, db):
         ver = db._conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == 1

@@ -80,6 +80,11 @@ class TestParseVolume:
 class TestParsePikaraokeArgs:
     """Tests for parse_pikaraoke_args."""
 
+    def test_direct_mp4_streaming_is_default(self, monkeypatch):
+        monkeypatch.setattr("sys.argv", ["pikaraoke"])
+        args = parse_pikaraoke_args()
+        assert args.streaming_format == "mp4"
+
     def test_skip_youtubedl_upgrade_default(self, monkeypatch):
         monkeypatch.setattr("sys.argv", ["pikaraoke"])
         args = parse_pikaraoke_args()

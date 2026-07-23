@@ -56,7 +56,7 @@ default_port = 5555
 default_log_level = logging.INFO
 default_prefer_hostname = False
 default_config_file_path = "config.ini"
-default_streaming_format = "hls"
+default_streaming_format = "mp4"
 default_dl_dir = get_default_dl_dir(platform)
 
 # Alias for cleaner help text formatting
@@ -206,7 +206,7 @@ def parse_pikaraoke_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--streaming-format",
-        help=f"Video streaming format: 'hls' (HLS with fMP4 segments) or 'mp4' (pushes mp4 directly to the browser - legacy format that might work better on some configurations). (default: {default_streaming_format})",
+        help=f"Video streaming format: 'mp4' starts compatible files directly with HTTP range requests; 'hls' always segments media and is available as a compatibility fallback. (default: {default_streaming_format})",
         choices=["hls", "mp4"],
         default=default_streaming_format,
         required=False,

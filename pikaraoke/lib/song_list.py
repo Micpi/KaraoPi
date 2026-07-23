@@ -108,7 +108,8 @@ class SongList:
             True if the song was added, False if validation failed.
         """
 
-        if os.path.exists(song_path) and self.is_valid_song(song_path):
+        # is_valid_song already performs the file existence/type check.
+        if self.is_valid_song(song_path):
             self.add(song_path)
             logging.debug(f"Added song to list: {song_path}")
             return True

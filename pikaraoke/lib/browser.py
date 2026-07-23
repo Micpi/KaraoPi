@@ -187,6 +187,8 @@ class Browser:
                     "--disable-translate",
                     "--disable-restore-session-state",
                     "--disable-background-networking",
+                    "--disable-extensions",
+                    "--disable-sync",
                     "--check-for-update-interval=31536000",
                     "--password-store=basic",
                 ]
@@ -201,7 +203,6 @@ class Browser:
             if self.karaoke.is_raspberry_pi:
                 cmd.extend(
                     [
-                        "--disable-dev-shm-usage",
                         "--force-dark-mode",
                         # Chromium accepts an RGBA hex value. This applies
                         # before the first document/CSS paint.

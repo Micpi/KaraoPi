@@ -154,6 +154,39 @@ This script:
 
 KaraoPi itself already launches its splash screen in **Chromium kiosk mode** (full-screen, no browser UI) once started — this script only takes care of getting the Pi to that point automatically and invisibly on every boot.
 
+### Smooth Chromium video playback
+
+KaraoPi defaults to direct MP4 playback with HTTP range requests. Compatible
+MP4/WebM files start from the USB drive without first being copied or segmented.
+Files that need conversion are streamed progressively by FFmpeg. If a particular
+browser or media collection behaves better with segmented playback, add
+`--streaming-format hls` to the KaraoPi launcher.
+
+No Chromium extension or codec plugin is required or recommended. In particular,
+do not install `h264ify` unless diagnostics prove that your media is being
+delivered as an unsupported codec: KaraoPi already prefers browser-compatible
+media, and extensions add another variable to kiosk startup. Keep Raspberry Pi
+OS and its packaged Chromium/FFmpeg current:
+
+```sh
+sudo apt update
+sudo apt install --only-upgrade chromium ffmpeg
+```
+
+Hardware acceleration must remain enabled in Chromium. To diagnose playback,
+temporarily exit kiosk mode and inspect:
+
+- `chrome://gpu` — **Video Decode** and compositing should not be reported as
+  software-only on hardware that supports acceleration.
+- `chrome://media-internals` — open a song and inspect its decoder, buffering,
+  errors, dropped frames, and selected codec.
+
+KaraoPi supplies the autoplay, kiosk, dark-background and low-overhead Chromium
+flags itself. Avoid permanently enabling experimental `chrome://flags` options
+such as “ignore GPU blocklist”: their names and behaviour change between
+Chromium releases and they can cause the black/white screens the kiosk recovery
+logic is designed to avoid.
+
 To set an admin password for the kiosk device, edit `scripts/karaopi_launch.sh` (created by the setup script) and set `KARAOPI_ADMIN_PASSWORD`.
 
 If the screen still blanks after a while on a Wayland session, disable it manually via `sudo raspi-config` > `Display Options` > `Screen Blanking` (the automated `xset` commands only apply to X11 sessions).

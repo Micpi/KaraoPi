@@ -104,7 +104,7 @@ class Karaoke:
         prefer_hostname: bool | None = None,
         preferred_language: str | None = None,
         socketio=None,
-        streaming_format: str = "hls",
+        streaming_format: str = "mp4",
         url: str | None = None,
         url_base_path: str = "",
         youtubedl_proxy: str | None = None,

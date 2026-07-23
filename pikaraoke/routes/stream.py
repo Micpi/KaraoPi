@@ -1,7 +1,6 @@
 """Video streaming routes for transcoded media playback."""
 
 import os
-import re
 import time
 
 import flask_babel
@@ -159,32 +158,24 @@ def stream_progressive_mp4(id):
 
 
 def stream_file_path_full(file_path):
-    try:
-        file_size = os.path.getsize(file_path)
-        range_header = request.headers.get("Range", None)
-        if not range_header:
-            with open(file_path, "rb") as file:
-                file_content = file.read()
-            return Response(file_content, mimetype="video/mp4")
-        # Extract range start and end from Range header (e.g., "bytes=0-499")
-        range_match = re.search(r"bytes=(\d+)-(\d*)", range_header)
-        start, end = range_match.groups()
-        start = int(start)
-        end = int(end) if end else file_size - 1
-        # Generate response with part of file
-        with open(file_path, "rb") as file:
-            file.seek(start)
-            data = file.read(end - start + 1)
-        status_code = 206  # Partial content
-        headers = {
-            "Content-Type": "video/mp4",
-            "Accept-Ranges": "bytes",
-            "Content-Range": f"bytes {start}-{end}/{file_size}",
-            "Content-Length": str(len(data)),
-        }
-        return Response(data, status=status_code, headers=headers)
-    except IOError:
+    if not file_path or not os.path.isfile(file_path):
         return Response("File not found.", status=404)
+    # Werkzeug handles conditional and byte-range requests without loading the
+    # entire video into Python memory.
+    return send_file(os.path.abspath(file_path), conditional=True)
+
+
+@stream_bp.route("/stream/direct/<id>")
+def stream_direct(id):
+    """Serve the current compatible media file without copying or transcoding."""
+    k = get_karaoke_instance()
+    controller = k.playback_controller
+    now_playing_url = controller.now_playing_url
+    if not now_playing_url or id not in now_playing_url:
+        return Response("Stream not found.", status=404)
+    if not controller.is_playing:
+        controller.start_song()
+    return stream_file_path_full(controller.now_playing_filename)
 
 
 # Streams the file in full with proper range headers

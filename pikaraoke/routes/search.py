@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
-
 import flask_babel
-from flask import current_app, jsonify, render_template, request, url_for
+from flask import jsonify, render_template, request, url_for
 from flask_smorest import Blueprint
 from marshmallow import Schema, fields
 
@@ -15,6 +13,7 @@ from pikaraoke.lib.youtube_dl import get_search_results, get_stream_url
 _ = flask_babel.gettext
 
 search_bp = Blueprint("search", __name__)
+_AUTOCOMPLETE_LIMIT = 100
 
 
 class AutocompleteQuery(Schema):
@@ -79,8 +78,10 @@ def autocomplete(query):
                     "type": "autocomplete",
                 }
             )
-    response = current_app.response_class(response=json.dumps(result), mimetype="application/json")
-    return response
+            # Avoid sending thousands of paths over Wi-Fi for broad searches.
+            if len(result) >= _AUTOCOMPLETE_LIMIT:
+                break
+    return jsonify(result)
 
 
 @search_bp.route("/preview")

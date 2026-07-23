@@ -135,38 +135,6 @@ class TestStreamManagerKillFfmpeg:
         assert sm.ffmpeg_process is None
 
 
-class TestStreamManagerCopyFile:
-    """Tests for StreamManager._copy_file method."""
-
-    def test_copy_file_success(self, tmp_path, test_prefs):
-        """Test successful file copy."""
-        sm = StreamManager(test_prefs)
-
-        src_file = tmp_path / "source.mp4"
-        src_file.write_bytes(b"video content")
-        dest_file = tmp_path / "dest.mp4"
-
-        result = sm._copy_file(str(src_file), str(dest_file))
-
-        assert result is True
-        assert dest_file.exists()
-        assert dest_file.read_bytes() == b"video content"
-
-    @patch("pikaraoke.lib.stream_manager.time")
-    @patch("pikaraoke.lib.stream_manager.os.path.exists", return_value=False)
-    @patch("pikaraoke.lib.stream_manager.shutil")
-    def test_copy_file_returns_false_when_dest_never_appears(
-        self, mock_shutil, mock_exists, mock_time, test_prefs
-    ):
-        """Test _copy_file returns False when destination never appears after copy."""
-        sm = StreamManager(test_prefs)
-
-        result = sm._copy_file("/src/file.mp4", "/dest/file.mp4")
-
-        assert result is False
-        mock_shutil.copy.assert_called_once()
-
-
 class TestStreamManagerCheckMp4Buffer:
     """Tests for StreamManager._check_mp4_buffer method."""
 
@@ -463,20 +431,21 @@ class TestStreamManagerPlayFile:
     @patch("flask_babel._", side_effect=lambda x: x)
     @patch("pikaraoke.lib.stream_manager.is_transcoding_required", return_value=False)
     @patch("pikaraoke.lib.stream_manager.FileResolver")
-    def test_play_file_copies_when_no_transcoding_needed(
+    def test_play_file_serves_original_when_no_transcoding_needed(
         self, mock_resolver_class, mock_transcode_check, mock_gettext, test_prefs
     ):
-        """Test play_file copies file when no transcoding required."""
+        """Compatible files start directly without an intermediate copy."""
         sm = StreamManager(test_prefs, streaming_format="mp4")
-        self._setup_resolver(mock_resolver_class, duration=180)
+        mock_fr = self._setup_resolver(mock_resolver_class, duration=180)
+        mock_fr.file_path = "/songs/test.mp4"
 
-        with patch.object(sm, "_copy_file", return_value=True) as mock_copy:
+        with patch("pikaraoke.lib.stream_manager.os.path.isfile", return_value=True):
             result = sm.play_file("/songs/test.mp4")
 
-        mock_copy.assert_called_once()
         assert isinstance(result, PlaybackResult)
         assert result.success is True
         assert result.duration == 180
+        assert result.stream_url == "/stream/direct/12345"
 
     @patch("flask_babel._", side_effect=lambda x: x)
     @patch("pikaraoke.lib.stream_manager.is_transcoding_required", return_value=False)
@@ -535,9 +504,12 @@ class TestStreamManagerPlayFile:
     ):
         """Test play_file includes subtitle URL when subtitle file exists."""
         sm = StreamManager(test_prefs, streaming_format="mp4")
-        self._setup_resolver(mock_resolver_class, duration=180, ass_file_path="/tmp/12345.ass")
+        mock_fr = self._setup_resolver(
+            mock_resolver_class, duration=180, ass_file_path="/tmp/12345.ass"
+        )
+        mock_fr.file_path = "/songs/test.mp4"
 
-        with patch.object(sm, "_copy_file", return_value=True):
+        with patch("pikaraoke.lib.stream_manager.os.path.isfile", return_value=True):
             result = sm.play_file("/songs/test.mp4")
 
         assert result.success is True
