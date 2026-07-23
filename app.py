@@ -169,6 +169,9 @@ def get_queue():
 
 @app.route("/queue/addrandom", methods=["GET"])
 def add_random():
+    if not is_admin():
+        flash("You don't have permission to add random tracks", "is-danger")
+        return redirect(url_for("queue"))
     amount = int(request.args["amount"])
     rc = k.queue_add_random(amount)
     if rc:
@@ -179,6 +182,9 @@ def add_random():
 
 @app.route("/queue/edit", methods=["GET"])
 def queue_edit():
+    if not is_admin():
+        flash("You don't have permission to edit the queue", "is-danger")
+        return redirect(url_for("queue"))
     action = request.args["action"]
     if action == "clear":
         k.queue_clear()
@@ -397,6 +403,9 @@ def start_song():
 
 @app.route("/files/delete", methods=["GET"])
 def delete_file():
+    if not is_admin():
+        flash("You don't have permission to delete songs", "is-danger")
+        return redirect(url_for("browse"))
     if "song" in request.args:
         song_path = request.args["song"]
         if song_path in k.queue:
@@ -415,6 +424,9 @@ def delete_file():
 
 @app.route("/files/edit", methods=["GET", "POST"])
 def edit_file():
+    if not is_admin():
+        flash("You don't have permission to edit songs", "is-danger")
+        return redirect(url_for("browse"))
     queue_error_msg = "Error: Can't edit this song because it is in the current queue: "
     if "song" in request.args:
         song_path = request.args["song"]
