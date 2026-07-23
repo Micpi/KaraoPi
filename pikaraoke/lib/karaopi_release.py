@@ -134,15 +134,13 @@ def apply_pending_update(app_root):
 
     configure_logging(app_root)
     logging.info("Applying pending KaraoPi update to %s", marker["tag"])
-    try:
-        with tempfile.TemporaryDirectory(prefix="karaopi-update-") as temp_dir:
-            archive_path = download_release_archive(marker["zip_url"], temp_dir)
-            release_root = extract_release_archive(archive_path, temp_dir)
-            sync_release_to_app_root(release_root, app_root)
-        install_requirements(app_root)
-        logging.info("KaraoPi update to %s applied successfully.", marker["tag"])
-    finally:
-        clear_pending_update_marker(app_root)
+    with tempfile.TemporaryDirectory(prefix="karaopi-update-") as temp_dir:
+        archive_path = download_release_archive(marker["zip_url"], temp_dir)
+        release_root = extract_release_archive(archive_path, temp_dir)
+        sync_release_to_app_root(release_root, app_root)
+    install_requirements(app_root)
+    clear_pending_update_marker(app_root)
+    logging.info("KaraoPi update to %s applied successfully.", marker["tag"])
     return True
 
 
@@ -280,6 +278,16 @@ def install_requirements(app_root):
     pyproject_path = os.path.join(app_root, "pyproject.toml")
     if not os.path.isfile(pyproject_path):
         logging.info("No pyproject.toml found after update, skipping dependency install.")
+        return
+
+    uv_executable = shutil.which("uv")
+    if uv_executable:
+        # Kiosk installations are created with `uv sync`. Their virtual
+        # environment intentionally may not contain pip, so `python -m pip`
+        # is not a reliable update path.
+        install_command = [uv_executable, "sync"]
+        logging.info("Installing KaraoPi dependencies: %s", " ".join(install_command))
+        subprocess.check_call(install_command, cwd=app_root)
         return
 
     if os.name == "nt":

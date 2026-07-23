@@ -125,7 +125,9 @@ while true; do
   if [ -f "$KARAOPI_INSTALL_DIR/.karaopi_update_pending.json" ]; then
     echo "$(date): applying pending KaraoPi update" >> "$LOG_FILE"
     if command -v uv >/dev/null 2>&1; then
-      uv run python -m pikaraoke.lib.karaopi_release --apply-pending --app-root "$KARAOPI_INSTALL_DIR" >> "$LOG_FILE" 2>&1
+      # Do not let `uv run` sync the OLD project before the updater has copied
+      # the new release. The updater performs one explicit `uv sync` afterward.
+      uv run --no-sync python -m pikaraoke.lib.karaopi_release --apply-pending --app-root "$KARAOPI_INSTALL_DIR" >> "$LOG_FILE" 2>&1
     else
       .venv/bin/python -m pikaraoke.lib.karaopi_release --apply-pending --app-root "$KARAOPI_INSTALL_DIR" >> "$LOG_FILE" 2>&1
     fi
@@ -133,7 +135,7 @@ while true; do
 
   echo "$(date): starting KaraoPi" >> "$LOG_FILE"
   if command -v uv >/dev/null 2>&1; then
-    uv run pikaraoke "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>&1
+    uv run --no-sync pikaraoke "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>&1
   else
     .venv/bin/python -m pikaraoke.app "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>&1
   fi
@@ -192,4 +194,3 @@ if [ -f "/usr/share/plymouth/themes/pix/pix.plymouth" ]; then
     fi
   fi
 fi
-
