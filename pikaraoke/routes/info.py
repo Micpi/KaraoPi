@@ -110,7 +110,7 @@ def info():
 
 
 @info_bp.route("/info/stats")
-def get_system_stats():
+def system_stats():
     """Get system statistics (CPU, Memory, Disk).
 
     Returns:

@@ -282,7 +282,7 @@
 		{% endif %}
 
 		// Fetch system stats asynchronously
-			$.getJSON("{{ url_for('info.get_system_stats') }}", function(data) {
+			$.getJSON("{{ url_for('info.system_stats') }}", function(data) {
 				if (data.error) {
 					console.error("Error fetching stats:", data.error);
 					return;
