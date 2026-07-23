@@ -21,6 +21,7 @@ from pikaraoke.lib.current_app import (
     get_karaoke_instance,
     is_admin,
 )
+from pikaraoke.lib.get_platform import get_platform
 from pikaraoke.lib.karaopi_release import AppUpdateError, start_background_update
 from pikaraoke.lib.youtube_dl import get_youtubedl_version, upgrade_youtubedl
 
