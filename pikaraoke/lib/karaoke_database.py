@@ -35,6 +35,25 @@ CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS score_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES score_sessions(id) ON DELETE CASCADE,
+    playback_id TEXT NOT NULL,
+    participant TEXT NOT NULL,
+    song TEXT NOT NULL,
+    score INTEGER NOT NULL CHECK(score BETWEEN 0 AND 99),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(session_id, playback_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scores_session ON scores(session_id);
+CREATE INDEX IF NOT EXISTS idx_scores_participant ON scores(participant);
 """
 
 
@@ -72,7 +91,7 @@ class KaraokeDatabase:
     def _create_schema(self) -> None:
         self._conn.executescript(_SCHEMA)
         with self._conn:
-            self._conn.execute("PRAGMA user_version = 1")
+            self._conn.execute("PRAGMA user_version = 2")
 
     # ------------------------------------------------------------------
     # Read operations
@@ -188,6 +207,65 @@ class KaraokeDatabase:
                 "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
                 (key, value),
             )
+
+    # ------------------------------------------------------------------
+    # Karaoke score sessions
+    # ------------------------------------------------------------------
+
+    def create_score_session(self) -> int:
+        """Start a score session and return its database ID."""
+        with self._lock, self._conn:
+            cursor = self._conn.execute("INSERT INTO score_sessions DEFAULT VALUES")
+            return int(cursor.lastrowid)
+
+    def record_score(
+        self,
+        session_id: int,
+        playback_id: str,
+        participant: str,
+        song: str,
+        score: int,
+    ) -> bool:
+        """Store one performance, ignoring a duplicate playback notification."""
+        if not 0 <= score <= 99:
+            raise ValueError("Score must be between 0 and 99")
+        with self._lock, self._conn:
+            cursor = self._conn.execute(
+                """
+                INSERT OR IGNORE INTO scores
+                    (session_id, playback_id, participant, song, score)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (session_id, playback_id, participant, song, score),
+            )
+            return cursor.rowcount == 1
+
+    def get_score_history(self, session_limit: int = 20) -> list[dict]:
+        """Return performances from the latest non-empty score sessions."""
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT
+                    ss.id AS session_id,
+                    ss.started_at,
+                    s.participant,
+                    s.song,
+                    s.score,
+                    s.created_at
+                FROM score_sessions AS ss
+                JOIN scores AS s ON s.session_id = ss.id
+                WHERE ss.id IN (
+                    SELECT session_id
+                    FROM scores
+                    GROUP BY session_id
+                    ORDER BY session_id DESC
+                    LIMIT ?
+                )
+                ORDER BY ss.id DESC, s.score DESC, s.created_at ASC
+                """,
+                (session_limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
 
     # ------------------------------------------------------------------
     # Maintenance

@@ -83,13 +83,17 @@ async function startScore(staticPath) {
   const drumDuration = 4100;
 
   await rotateScore(scoreTextElement, drumDuration);
-  await showFinalScoreWithAudio(
+  const finalScoreDisplay = showFinalScoreWithAudio(
     scoreTextElement,
     scoreValue,
     scoreReviewElement,
     scoreData,
     applause
   );
+  if (typeof isMaster !== "undefined" && isMaster && typeof socket !== "undefined") {
+    socket.emit("record_score", { score: scoreValue });
+  }
+  await finalScoreDisplay;
   scoreReviewElement.text("");
   scoreElement.hide();
 }

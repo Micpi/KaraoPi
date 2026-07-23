@@ -30,6 +30,9 @@ let splashDomReady = false;
 let pendingNowPlaying = null;
 const splashRecoveryKey = "pikaraokeSplashRecoveryCount";
 let splashRecoveryScheduled = false;
+let playbackWatchdogTimer = null;
+let stalledPlaybackTimer = null;
+let firstVideoFrameRendered = false;
 
 const scheduleKioskBootReload = () => {
   const url = new URL(window.location.href);
@@ -60,6 +63,53 @@ const recoverSplash = (reason) => {
   }
   sessionStorage.removeItem(splashRecoveryKey);
   return false;
+};
+
+const clearPlaybackWatchdogs = () => {
+  clearTimeout(playbackWatchdogTimer);
+  clearTimeout(stalledPlaybackTimer);
+  playbackWatchdogTimer = null;
+  stalledPlaybackTimer = null;
+};
+
+const confirmVideoFrame = () => {
+  firstVideoFrameRendered = true;
+  clearTimeout(playbackWatchdogTimer);
+  clearTimeout(stalledPlaybackTimer);
+  sessionStorage.removeItem(splashRecoveryKey);
+};
+
+const watchForDecodedFrame = (video, timeout, reason) => {
+  const watchedUrl = currentVideoUrl;
+  const watchedPosition = video.currentTime;
+  let callbackId = null;
+  let frameArrived = false;
+
+  if (typeof video.requestVideoFrameCallback === "function") {
+    callbackId = video.requestVideoFrameCallback(() => {
+      frameArrived = true;
+      if (currentVideoUrl === watchedUrl) confirmVideoFrame();
+    });
+  }
+
+  return setTimeout(() => {
+    if (currentVideoUrl !== watchedUrl || video.ended) return;
+    const progressed = video.currentTime > watchedPosition + 0.1;
+    const frameMissing = callbackId !== null && !frameArrived;
+    if (video.paused || video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA || !progressed || frameMissing) {
+      recoverSplash(reason);
+    }
+  }, timeout);
+};
+
+const armPlaybackStartWatchdog = (video) => {
+  clearPlaybackWatchdogs();
+  firstVideoFrameRendered = false;
+  playbackWatchdogTimer = watchForDecodedFrame(
+    video,
+    playbackStartTimeout,
+    "no decoded video frame after playback start"
+  );
 };
 
 // Browser detection
@@ -145,6 +195,7 @@ const endSong = async (reason = null, showScore = false) => {
         isScoreShown = false;
     }
     currentVideoUrl = null;
+    clearPlaybackWatchdogs();
     if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
@@ -475,6 +526,8 @@ const handleNowPlayingUpdate = (np) => {
       video.volume = volume;
     }
 
+    armPlaybackStartWatchdog(video);
+
     const duration = $("#duration");
     if (np.now_playing_duration) {
       duration.text(`/${formatTime(np.now_playing_duration)}`);
@@ -490,11 +543,6 @@ const handleNowPlayingUpdate = (np) => {
       }
     }
 
-    setTimeout(() => {
-      if (!isMediaPlaying(video) && !video.paused) {
-        endSong("failed to start");
-      }
-    }, playbackStartTimeout);
   }
 }
 
@@ -561,8 +609,10 @@ const setupVideoPlayer = () => {
   $('#video-container').hide();
   const video = getVideoPlayer();
   video.addEventListener("play", () => {
-    sessionStorage.removeItem(splashRecoveryKey);
     $("#video-container").show();
+    if (typeof video.requestVideoFrameCallback !== "function") {
+      confirmVideoFrame();
+    }
     if (isMaster) {
       setTimeout(() => { socket.emit("start_song") }, 1200);
     }
@@ -577,20 +627,22 @@ const setupVideoPlayer = () => {
 
   video.addEventListener("ended", () => { endSong("complete", true); });
   video.addEventListener("timeupdate", (e) => { $("#current").text(formatTime(video.currentTime)); });
+  const monitorPlaybackStall = (event) => {
+    if (!currentVideoUrl || video.ended || splashRecoveryScheduled) return;
+    clearTimeout(stalledPlaybackTimer);
+    stalledPlaybackTimer = watchForDecodedFrame(
+      video,
+      8000,
+      `video remained ${event.type}`
+    );
+  };
+  video.addEventListener("waiting", monitorPlaybackStall);
+  video.addEventListener("stalled", monitorPlaybackStall);
   $("#video source")[0].addEventListener("error", (e) => {
     if (isMediaPlaying(video)) {
       endSong("error while playing");
     }
   });
-  window.addEventListener(
-    'beforeunload',
-    function (event) {
-      if (isMediaPlaying(video)) {
-        endSong("splash screen closed");
-      }
-    },
-    true
-  );
 }
 
 const setupBackgroundVideoPlayer = () => {

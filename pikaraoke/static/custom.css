@@ -617,3 +617,55 @@ input[type="range"] {
     margin-left: 0.3rem !important;
   }
 }
+
+.score-session {
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.score-ranking th:not(:nth-child(2)),
+.score-ranking td:not(:nth-child(2)) {
+  width: 14%;
+  text-align: center;
+}
+
+.score-ranking th:nth-child(2),
+.score-ranking td:nth-child(2) {
+  width: 44%;
+}
+
+.score-explanation p:last-child {
+  margin-bottom: 0;
+}
+
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media screen and (max-width: 600px) {
+  .score-session {
+    padding: 0.65rem;
+  }
+
+  .score-session-heading {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .score-ranking {
+    font-size: 0.88rem;
+  }
+
+  .score-ranking th,
+  .score-ranking td {
+    padding: 0.55rem 0.25rem;
+  }
+}

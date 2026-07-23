@@ -33,7 +33,7 @@ class TestInit:
 
     def test_user_version(self, db):
         ver = db._conn.execute("PRAGMA user_version").fetchone()[0]
-        assert ver == 1
+        assert ver == 2
 
     def test_songs_table_exists(self, db):
         tables = {
@@ -197,6 +197,35 @@ class TestIntegrityCheck:
         ok, msg = db.check_integrity()
         assert ok is True
         assert msg == "ok"
+
+
+class TestScoreHistory:
+    def test_records_and_groups_score_sessions(self, db):
+        first_session = db.create_score_session()
+        second_session = db.create_score_session()
+        assert db.record_score(first_session, "play-1", "Alice", "Song A", 72) is True
+        assert db.record_score(first_session, "play-2", "Bob", "Song B", 54) is True
+        assert db.record_score(second_session, "play-3", "Alice", "Song C", 88) is True
+
+        history = db.get_score_history()
+
+        assert [row["session_id"] for row in history] == [
+            second_session,
+            first_session,
+            first_session,
+        ]
+        assert history[0]["score"] == 88
+
+    def test_duplicate_playback_score_is_ignored(self, db):
+        session_id = db.create_score_session()
+        assert db.record_score(session_id, "same-play", "Alice", "Song", 80) is True
+        assert db.record_score(session_id, "same-play", "Alice", "Song", 90) is False
+        assert len(db.get_score_history()) == 1
+
+    def test_rejects_score_outside_range(self, db):
+        session_id = db.create_score_session()
+        with pytest.raises(ValueError):
+            db.record_score(session_id, "play", "Alice", "Song", 100)
 
 
 class TestUnicodeFilenames:

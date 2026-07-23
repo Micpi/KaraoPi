@@ -1508,3 +1508,75 @@ msgstr ""
 msgid "Confirm"
 msgstr "Confirmer"
 
+#: templates/base.html templates/scores.html
+msgid "Scores"
+msgstr "Scores"
+
+#: templates/scores.html
+msgid "How are points awarded?"
+msgstr "Comment les points sont-ils attribués ?"
+
+#: templates/scores.html
+msgid ""
+"The score is a fun random result from 0 to 98, weighted toward higher "
+"scores. It does not analyse the microphone or singing accuracy. Scores "
+"below 30 receive light applause, scores from 30 to 59 medium applause, and "
+"scores from 60 upward strong applause."
+msgstr ""
+"Le score est un résultat aléatoire ludique de 0 à 98, favorisant les scores "
+"élevés. Il n’analyse ni le microphone ni la justesse du chant. Un score "
+"inférieur à 30 reçoit des applaudissements légers, de 30 à 59 des "
+"applaudissements moyens, et à partir de 60 de forts applaudissements."
+
+#: templates/scores.html
+msgid ""
+"A new session starts whenever KaraoPi starts, so each karaoke evening "
+"remains separate in the history."
+msgstr ""
+"Une nouvelle session commence à chaque démarrage de KaraoPi, afin que chaque "
+"soirée karaoké reste séparée dans l’historique."
+
+#: templates/scores.html
+msgid "Session"
+msgstr "Session"
+
+#: templates/scores.html
+msgid "Participant ranking"
+msgstr "Classement des participants"
+
+#: templates/scores.html
+msgid "Participant"
+msgstr "Participant"
+
+#: templates/scores.html
+msgid "Average"
+msgstr "Moyenne"
+
+#: templates/scores.html
+msgid "Best"
+msgstr "Meilleur"
+
+#: templates/scores.html
+msgid "Songs"
+msgstr "Chansons"
+
+#: templates/scores.html
+msgid "Show every performance"
+msgstr "Afficher toutes les prestations"
+
+#: templates/scores.html
+msgid "Song"
+msgstr "Chanson"
+
+#: templates/scores.html
+msgid "Score"
+msgstr "Score"
+
+#: templates/scores.html
+msgid "No scores have been recorded yet."
+msgstr "Aucun score n’a encore été enregistré."
+
+#: templates/scores.html
+msgid "Complete a song with the score screen enabled to start the ranking."
+msgstr "Terminez une chanson avec l’écran de score activé pour commencer le classement."
+

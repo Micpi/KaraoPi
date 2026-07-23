@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}{% trans %}Scores{% endtrans %}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="notification is-info is-light score-explanation">
+  <strong>{% trans %}How are points awarded?{% endtrans %}</strong>
+  <p>
+    {% trans %}The score is a fun random result from 0 to 98, weighted toward higher scores. It does not analyse the microphone or singing accuracy. Scores below 30 receive light applause, scores from 30 to 59 medium applause, and scores from 60 upward strong applause.{% endtrans %}
+  </p>
+  <p class="mt-2">
+    {% trans %}A new session starts whenever KaraoPi starts, so each karaoke evening remains separate in the history.{% endtrans %}
+  </p>
+</div>
+
+{% if sessions %}
+  {% for session in sessions %}
+  <section class="score-session mb-6">
+    <div class="is-flex is-justify-content-space-between is-align-items-center score-session-heading">
+      <h2 class="title is-4 mb-2">{% trans %}Session{% endtrans %} #{{ session.id }}</h2>
+      <span class="tag is-dark">{{ session.started_at }}</span>
+    </div>
+
+    <h3 class="title is-5">{% trans %}Participant ranking{% endtrans %}</h3>
+    <div class="table-container">
+      <table class="table is-striped is-fullwidth score-ranking">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{% trans %}Participant{% endtrans %}</th>
+            <th>{% trans %}Average{% endtrans %}</th>
+            <th>{% trans %}Best{% endtrans %}</th>
+            <th>{% trans %}Songs{% endtrans %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for participant in session.ranking %}
+          <tr>
+            <td>{% if loop.index == 1 %}🏆{% else %}{{ loop.index }}{% endif %}</td>
+            <td class="break-word"><strong>{{ participant.name }}</strong></td>
+            <td>{{ participant.average }}</td>
+            <td><span class="tag is-primary is-medium">{{ participant.best }}</span></td>
+            <td>{{ participant.songs }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <details>
+      <summary class="button is-small is-primary is-outlined">{% trans %}Show every performance{% endtrans %}</summary>
+      <div class="table-container mt-3">
+        <table class="table is-striped is-fullwidth">
+          <thead>
+            <tr>
+              <th>{% trans %}Participant{% endtrans %}</th>
+              <th>{% trans %}Song{% endtrans %}</th>
+              <th>{% trans %}Score{% endtrans %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for performance in session.performances %}
+            <tr>
+              <td class="break-word">{{ performance.participant }}</td>
+              <td class="break-word">{{ performance.song }}</td>
+              <td><strong>{{ performance.score }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  {% endfor %}
+{% else %}
+<div class="has-text-centered py-6">
+  <p class="title is-5">{% trans %}No scores have been recorded yet.{% endtrans %}</p>
+  <p>{% trans %}Complete a song with the score screen enabled to start the ranking.{% endtrans %}</p>
+</div>
+{% endif %}
+{% endblock %}

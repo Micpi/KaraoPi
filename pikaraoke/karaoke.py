@@ -219,6 +219,7 @@ class Karaoke:
 
         # Initialize database, scanner, and song manager (startup runs at end of __init__)
         self.db = KaraokeDatabase()
+        self.score_session_id = self.db.create_score_session()
         self.song_manager = SongManager(
             self.download_path, db=self.db, get_title_tidy=lambda: self.enable_title_tidy
         )

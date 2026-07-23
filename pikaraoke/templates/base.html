@@ -20,7 +20,8 @@
   <link rel="stylesheet" href="{{  url_for('static', filename='bulma.min.css') }}">
   <link rel="stylesheet" href="{{  url_for('static', filename='bulma-dark.css') }}">
   <link rel="stylesheet" href="{{  url_for('static', filename='custom.css') }}">
-  <link rel="icon" type="image/png" href="{{  url_for('static', filename='images/microphone.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/karaopi-logo.svg') }}">
+  <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/karaopi-logo-boot.png') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/karaopi-logo-boot.png') }}">
   {% if not blank_page %}
   <link rel="manifest" href="{{ url_for('home.webmanifest') }}">
@@ -150,6 +151,12 @@
       window.socket.on('disconnect', function() {
           console.log('Socket disconnected');
       });
+      window.socket.on('score_update', function() {
+          var basePath = window.pikaraokeConfig.basePath || "";
+          if (window.location.pathname === basePath + "/scores") {
+              window.location.reload();
+          }
+      });
     }
 
 
@@ -210,6 +217,9 @@
       }
       if (path === '/browse' || path.startsWith('/browse')) {
         $("#browse").addClass("is-active")
+      }
+      if (path === '/scores') {
+        $("#scores").addClass("is-active")
       }
       if (path === '/info') {
         $("#info").addClass("is-active")
@@ -299,6 +309,10 @@
           <i class="icon icon-folder-open-empty" title="Browse"></i>
           {# MSG: Navigation link for the page where the user can add existing songs to the queue. #}
           <span>{% trans %}Browse{% endtrans %}</span>
+        </a>
+        <a id="scores" class="navbar-item" href="{{ url_for('scores.scores') }}">
+          <i class="icon icon-list-numbered" title="Scores"></i>
+          <span>{% trans %}Scores{% endtrans %}</span>
         </a>
         <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
           <span aria-hidden="true"></span>
