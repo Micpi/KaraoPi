@@ -101,6 +101,7 @@ def info():
         mic_passthrough_enabled=k.enable_mic_passthrough,
         qr_code_position=k.preferences.get_or_default("qr_code_position"),
         qr_code_size=k.preferences.get_or_default("qr_code_size"),
+        usb_download_path=k.preferences.get_or_default("usb_download_path"),
         qr_code_style=k.preferences.get_or_default("qr_code_style"),
         qr_code_fill_color=k.preferences.get_or_default("qr_code_fill_color"),
         qr_code_back_color=k.preferences.get_or_default("qr_code_back_color"),
