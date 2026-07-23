@@ -105,3 +105,12 @@ if command -v uv >/dev/null 2>&1; then
 else
   echo "Start it with: cd $INSTALL_DIR && .venv/bin/python -m pikaraoke.app"
 fi
+
+echo
+read -p "Configure this Raspberry Pi as a dedicated kiosk appliance (autostart, hidden console, fullscreen)? (y/n): " SETUP_KIOSK
+if [ "$SETUP_KIOSK" = "y" ]; then
+  chmod +x "$INSTALL_DIR/scripts/setup_kiosk.sh"
+  "$INSTALL_DIR/scripts/setup_kiosk.sh" "$INSTALL_DIR"
+else
+  echo "Skipping kiosk setup. You can run it later with: $INSTALL_DIR/scripts/setup_kiosk.sh"
+fi

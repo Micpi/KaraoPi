@@ -21,6 +21,7 @@ This fork tracks upstream PiKaraoke **v1.21.0** and adds its own self-update wor
 - [Application updates](#application-updates)
 - [Publishing a release](#publishing-a-release)
 - [Clean reinstall on Raspberry Pi](#clean-reinstall-on-raspberry-pi)
+- [Dedicated karaoke appliance setup (kiosk mode)](#dedicated-karaoke-appliance-setup-kiosk-mode)
 - [Docker](#docker-instructions)
 - [Troubleshooting and guides](#troubleshooting-and-guides)
 
@@ -120,7 +121,34 @@ chmod +x reinstall_pi.sh
 ./reinstall_pi.sh
 ```
 
-The script searches common install locations (both the legacy root layout and the current `pikaraoke/` package layout), stops any running KaraoPi process, asks for confirmation before deleting the old installation(s) it finds (your downloaded songs in `~/pikaraoke-songs` are never touched), then clones the repository, checks out the latest release tag, and installs dependencies with `uv` (or a plain virtual environment as a fallback).
+The script searches common install locations (both the legacy root layout and the current `pikaraoke/` package layout), stops any running KaraoPi process, asks for confirmation before deleting the old installation(s) it finds (your downloaded songs in `~/pikaraoke-songs` are never touched), then clones the repository, checks out the latest release tag, and installs dependencies with `uv` (or a plain virtual environment as a fallback). At the end it offers to run the kiosk appliance setup below.
+
+## Dedicated karaoke appliance setup (kiosk mode)
+
+To turn a Raspberry Pi running Raspberry Pi OS (with Desktop) into a dedicated karaoke appliance — auto-starting on boot, full-screen, with no visible console or login prompt — run `scripts/setup_kiosk.sh` on the Pi:
+
+```sh
+cd KaraoPi
+chmod +x scripts/setup_kiosk.sh
+./scripts/setup_kiosk.sh
+sudo reboot
+```
+
+This script:
+
+- Enables **Desktop Autologin** via `raspi-config`, so the Pi boots straight to the desktop with no login prompt.
+- Silences kernel boot messages (**quiet boot**) by updating `cmdline.txt` (a backup is saved before editing).
+- Installs `unclutter` to **hide the mouse cursor** when idle.
+- Creates a launcher script that starts KaraoPi with `--keep-awake` (prevents the Pi from sleeping) and **automatically restarts it** if it ever crashes, logging to `~/.pikaraoke/karaopi-launch.log`.
+- Registers the launcher as an **XDG autostart entry** (`~/.config/autostart/karaopi.desktop`), which works whether the desktop session is X11 (LXDE) or Wayland (Wayfire/Labwc), instead of editing compositor-specific config files.
+
+KaraoPi itself already launches its splash screen in **Chromium kiosk mode** (full-screen, no browser UI) once started — this script only takes care of getting the Pi to that point automatically and invisibly on every boot.
+
+To set an admin password for the kiosk device, edit `scripts/karaopi_launch.sh` (created by the setup script) and set `KARAOPI_ADMIN_PASSWORD`.
+
+If the screen still blanks after a while on a Wayland session, disable it manually via `sudo raspi-config` > `Display Options` > `Screen Blanking` (the automated `xset` commands only apply to X11 sessions).
+
+To undo the kiosk setup: remove `~/.config/autostart/karaopi.desktop`, restore `cmdline.txt` from the `.karaopi-backup` file the script created, and reset the boot behaviour in `raspi-config` if desired.
 
 ## Docker instructions
 
