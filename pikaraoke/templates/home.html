@@ -1,6 +1,36 @@
 {% extends 'base.html' %} {% block scripts %}
 <script>
 	var volume = {{ volume|default(0.85) }};
+	var playbackPosition = 0;
+	var playbackDuration = 0;
+	var playbackPaused = false;
+	var playbackClock = null;
+
+	function formatMediaTime(seconds) {
+		seconds = Math.max(0, Math.floor(Number(seconds) || 0));
+		var hours = Math.floor(seconds / 3600);
+		var minutes = Math.floor((seconds % 3600) / 60);
+		var secs = String(seconds % 60).padStart(2, "0");
+		return hours ? hours + ":" + String(minutes).padStart(2, "0") + ":" + secs : minutes + ":" + secs;
+	}
+
+	function renderPlaybackTime() {
+		var remaining = Math.max(0, playbackDuration - playbackPosition);
+		$("#media-elapsed").text(formatMediaTime(playbackPosition));
+		$("#media-duration").text(formatMediaTime(playbackDuration));
+		$("#media-remaining").text("-" + formatMediaTime(remaining));
+		$("#media-progress").val(playbackDuration ? Math.min(100, playbackPosition / playbackDuration * 100) : 0);
+	}
+
+	function startPlaybackClock() {
+		clearInterval(playbackClock);
+		playbackClock = setInterval(function () {
+			if (!playbackPaused && playbackDuration && playbackPosition < playbackDuration) {
+				playbackPosition += 1;
+				renderPlaybackTime();
+			}
+		}, 1000);
+	}
 
 	// Ensure global socket exists
 	if (typeof window.socket === 'undefined') {
@@ -30,10 +60,17 @@
 
 			$("#now-playing").html(nowPlayingHtml);
 			$(".control-box").show();
+			playbackDuration = Number(np.now_playing_duration) || 0;
+			if (np.now_playing_position != null) playbackPosition = Number(np.now_playing_position) || 0;
+			playbackPaused = Boolean(np.is_paused);
+			renderPlaybackTime();
+			startPlaybackClock();
 		} else {
 			// {# MSG: Message which shows in the "Now Playing" section when there is no song currently playing #}
 			$("#now-playing").html({{ _('Nothing is playing right now.') | tojson }});
 			$(".control-box").hide();
+			clearInterval(playbackClock);
+			playbackPosition = playbackDuration = 0;
 		}
 
 		if (np.up_next) {
@@ -160,6 +197,10 @@
 		loadNowPlaying();
 		//for pushed updates to now playing state
 		window.socket.on("now_playing", (np) => handleNowPlaying(np));
+		window.socket.on("playback_position", function(position) {
+			playbackPosition = Number(position) || 0;
+			renderPlaybackTime();
+		});
 
 		document.addEventListener("visibilitychange", function () {
 			console.log("on visibility change");
@@ -242,17 +283,29 @@
 </h1>
 {% endblock %} {% block content %}
 
-<p class="is-size-4 has-text-warning" id="now-playing">&nbsp;</p>
-
-<hr />
-<h3>{# MSG: Title for the section displaying the next song to be played. #} {% trans %}Next Song{% endtrans %}</h3>
-<p id="up-next" class="has-text-warning"></p>
-<hr />
+<section class="now-playing-layout">
+	<div class="now-playing-card">
+		<div class="now-playing-art"><i class="icon icon-mic-1"></i></div>
+		<p class="is-size-4 has-text-warning" id="now-playing">&nbsp;</p>
+	</div>
+	<div class="up-next-card">
+		<span class="eyebrow">{% trans %}Up next{% endtrans %}</span>
+		<h3>{# MSG: Title for the section displaying the next song to be played. #} {% trans %}Next Song{% endtrans %}</h3>
+		<p id="up-next" class="has-text-warning"></p>
+	</div>
+</section>
 
 {% if admin %}
-<div class="has-background-black-bis box control-box" style="max-width: 500px; display: none">
+<div class="box control-box media-control-card" style="display: none">
 	{# MSG: Title of the box with controls such as pause and skip. #}
 	<h4>{% trans %}Player Control{% endtrans %}</h4>
+	<div class="media-timeline" aria-label="{{ _('Playback progress') }}">
+		<progress id="media-progress" class="progress is-primary" value="0" max="100">0%</progress>
+		<div class="media-time-row">
+			<span><span id="media-elapsed">0:00</span> / <span id="media-duration">0:00</span></span>
+			<span>{% trans %}Remaining{% endtrans %} <strong id="media-remaining">-0:00</strong></span>
+		</div>
+	</div>
 	<div class="is-size-3" style="display: flex; justify-content: space-between">
 		<div class="is-size-3">
 			{# MSG: Title attribute on the button to restart the current song. #}

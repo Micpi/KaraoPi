@@ -347,6 +347,8 @@
 	</script>
 {% endblock %}
 
+{% block body_class %}info-page{% endblock %}
+
 {% block header %}
 	<h1>
 		{% block title %}
@@ -357,8 +359,17 @@
 {% endblock %}
 
 {% block content %}
+	<nav class="info-quick-nav" aria-label="{{ _('Information sections') }}">
+		<a href="#info-share"><i class="icon icon-home"></i><span>{% trans %}Share{% endtrans %}</span></a>
+		{% if admin %}
+		<a href="#info-library"><i class="icon icon-folder-open-empty"></i><span>{% trans %}Library{% endtrans %}</span></a>
+		<a href="#info-preferences"><i class="icon icon-cog"></i><span>{% trans %}Preferences{% endtrans %}</span></a>
+		<a href="#info-system"><i class="icon icon-info-circled-1"></i><span>{% trans %}System{% endtrans %}</span></a>
+		<a href="#info-appearance"><i class="icon icon-cog"></i><span>{% trans %}Appearance{% endtrans %}</span></a>
+		{% endif %}
+	</nav>
 
-	<div class="card">
+	<div class="card info-hero-card" id="info-share">
 		<div class="card-content">
 			<div class="content has-text-centered">
 				<p>
@@ -404,7 +415,7 @@
 	{% if admin %}
 
 		{# MSG: Title of the song library section. #}
-		<h1>{% trans %}Song Library{% endtrans %}</h1>
+		<h1 id="info-library">{% trans %}Song Library{% endtrans %}</h1>
 
 		<div class="card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
@@ -444,7 +455,7 @@
 					<button id="refresh-usb-paths-btn" class="button is-small is-primary is-outlined mt-3">{% trans %}Refresh USB Paths{% endtrans %}</button>
 
 		{# MSG: Title of the user preferences section. #}
-		<h1>{% trans %}User Preferences{% endtrans %}</h1>
+		<h1 id="info-preferences">{% trans %}User Preferences{% endtrans %}</h1>
 
 		<div class="card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
@@ -738,7 +749,7 @@
 		</div>
 
 		{# MSG: Title of the system data section. #}
-		<h1>{% trans %}System Data{% endtrans %}</h1>
+		<h1 id="info-system">{% trans %}System Data{% endtrans %}</h1>
 
 		<div class="card">
 			<header class="card-header py-3 px-5">
@@ -845,7 +856,7 @@
 		</div>
 
 		{# MSG: Title of the branding and appearance customization section. #}
-		<h1>{% trans %}Branding &amp; Appearance{% endtrans %}</h1>
+		<h1 id="info-appearance">{% trans %}Branding &amp; Appearance{% endtrans %}</h1>
 
 		<div class="card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">

@@ -283,10 +283,10 @@
   }
 </style>
 
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
   {% if not blank_page %}
-  <div class="container" style="padding: 5px; max-width: 900px;">
+  <div class="container app-shell">
     <nav class="navbar" role="navigation" aria-label="main navigation">
       <div class="navbar-brand" id="brand" style="padding-left: 10px">
         <a id="home" class="navbar-item" href="{{ url_for('home.home') }}">
@@ -349,15 +349,15 @@
       <div class="flash"></div>
     </div>
 
-    <div class="box" style="margin-top: 5px;">
-      <header class="title">
+    <main class="box app-surface">
+      <header class="title page-header">
         {% block header %}{% endblock %}
       </header>
       <div class="content">
         {% block content %}
         {% endblock %}
       </div>
-    </div>
+    </main>
   </div>
   {% endif %}
 
