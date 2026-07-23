@@ -317,7 +317,7 @@
   #bg-video-container {
     z-index: 0;
     width: 100vw;
-    height: 100vh;
+    height: var(--visual-viewport-height, 100dvh);
     display: none;
     background-color: black !important;
   }
@@ -330,7 +330,7 @@
     background-color: black !important;
   }
   .fw-fh-container {
-    height: 100vh;
+    height: var(--visual-viewport-height, 100dvh);
     width: 100vw;
   }
   #logo-container {
@@ -338,7 +338,7 @@
     z-index: 1;
     display: flex;
     width: 100vw;
-    height: 100vh;
+    height: var(--visual-viewport-height, 100dvh);
     align-items: center;
     justify-content: center;
   }
@@ -349,7 +349,7 @@
     right: 0;
     top: 0;
 	 width: 100vw;
-	 height: 100vh;
+    height: var(--visual-viewport-height, 100dvh);
   }
   #menu {
     position: absolute;

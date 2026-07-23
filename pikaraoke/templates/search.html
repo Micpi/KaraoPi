@@ -677,6 +677,11 @@
 					<input
 						class="input"
 						id="direct-download-url"
+						type="url"
+						inputmode="url"
+						autocapitalize="none"
+						autocorrect="off"
+						spellcheck="false"
 						type="text"
 						value="https://www.youtube.com/watch?v="
 					/>
@@ -754,7 +759,7 @@
 			<div class="modal-background"></div>
 			<div class="modal-content">
 				<div class="video-container">
-					<video id="modal-video" controls></video>
+					<video id="modal-video" controls playsinline webkit-playsinline preload="metadata"></video>
 				</div>
 			</div>
 			<button class="modal-close is-large" aria-label="close"></button>

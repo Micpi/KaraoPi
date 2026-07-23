@@ -62,8 +62,10 @@
   font-size: 100%;
 }
 
-input {
-  /* prevents mobile zooming */
+input,
+select,
+textarea {
+  /* Prevent Safari iOS from zooming the page when a field receives focus. */
   font-size: 16px !important;
 }
 
@@ -134,10 +136,26 @@ body.hide-cursor * {
 /* Responsive foundations shared by every non-player page. */
 html {
   overflow-x: hidden;
+  background: #111111;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
+  min-height: 100dvh;
   min-width: 0;
+  padding-right: env(safe-area-inset-right);
+  padding-left: env(safe-area-inset-left);
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 img,
@@ -179,7 +197,7 @@ input[type="range"] {
 
 .modal-card,
 .modal-content {
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
 }
 
 .modal-card-body {
@@ -195,12 +213,15 @@ input[type="range"] {
 
 @media screen and (max-width: 768px) {
   body {
-    min-height: 100vh !important;
+    min-height: var(--visual-viewport-height, 100dvh) !important;
   }
 
   body > .container {
     width: 100%;
-    padding: 0.35rem !important;
+    padding-top: max(0.35rem, env(safe-area-inset-top)) !important;
+    padding-right: max(0.35rem, env(safe-area-inset-right)) !important;
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom)) !important;
+    padding-left: max(0.35rem, env(safe-area-inset-left)) !important;
   }
 
   body > .container > .box {
@@ -251,9 +272,9 @@ input[type="range"] {
   }
 
   .base-notification {
-    right: 0.5rem;
+    right: max(0.5rem, env(safe-area-inset-right));
     bottom: max(0.5rem, env(safe-area-inset-bottom));
-    left: 0.5rem !important;
+    left: max(0.5rem, env(safe-area-inset-left)) !important;
     width: auto !important;
     margin: 0 !important;
     padding-right: 2.75rem;
@@ -542,6 +563,7 @@ input[type="range"] {
   }
 
   .modal {
+    height: var(--visual-viewport-height, 100dvh);
     padding: 0.75rem;
   }
 
@@ -549,6 +571,34 @@ input[type="range"] {
   .modal-content {
     width: 100% !important;
     margin: 0;
+  }
+}
+
+/* iPhone standalone mode: keep controls clear of the home indicator. */
+@media (display-mode: standalone) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Compact landscape iPhones leave very little vertical space. */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  body > .container > .box {
+    padding-top: 0.5rem;
+  }
+
+  .navbar-item,
+  .navbar-burger {
+    min-height: 40px;
+  }
+
+  .modal {
+    padding-top: max(0.25rem, env(safe-area-inset-top));
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
   }
 }
 

@@ -21,3 +21,25 @@ def test_desktop_launch_url_is_unchanged():
     karaoke.is_raspberry_pi = False
 
     assert Browser(karaoke)._get_launch_url() == "http://127.0.0.1:5555/splash"
+
+
+def test_pi_display_is_painted_black_when_xsetroot_is_available():
+    karaoke = MagicMock()
+    karaoke.url = "http://127.0.0.1:5555"
+    karaoke.is_raspberry_pi = True
+    browser = Browser(karaoke)
+
+    with (
+        patch("pikaraoke.lib.browser.is_linux", return_value=True),
+        patch("pikaraoke.lib.browser.shutil.which", return_value="/usr/bin/xsetroot"),
+        patch("pikaraoke.lib.browser.subprocess.run") as run,
+    ):
+        browser._prepare_pi_display()
+
+    run.assert_called_once_with(
+        ["/usr/bin/xsetroot", "-solid", "black"],
+        stdout=-3,
+        stderr=-3,
+        timeout=3,
+        check=False,
+    )

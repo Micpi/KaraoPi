@@ -72,6 +72,24 @@ class Browser:
         separator = "&" if "?" in self.splash_url else "?"
         return f"{self.splash_url}{separator}kiosk_boot={int(time.time() * 1000)}"
 
+    def _prepare_pi_display(self) -> None:
+        """Paint the X11 root window black before Chromium creates its window."""
+        if not self.karaoke.is_raspberry_pi or not is_linux():
+            return
+        xsetroot = shutil.which("xsetroot")
+        if not xsetroot:
+            return
+        try:
+            subprocess.run(
+                [xsetroot, "-solid", "black"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            logging.debug("Unable to set the X11 root background to black")
+
     def launch_splash_screen(self) -> subprocess.Popen | None:
         """Launch the browser with the splash screen in kiosk mode.
 
@@ -81,6 +99,7 @@ class Browser:
         on Windows, Linux, and macOS.
         """
         logging.debug(f"Launching splash screen: {self.splash_url}")
+        self._prepare_pi_display()
 
         suppress_logs = int(self.karaoke.log_level) > logging.DEBUG
         stdout_dest = subprocess.DEVNULL if suppress_logs else None
@@ -180,7 +199,15 @@ class Browser:
 
             # Pi optimizations
             if self.karaoke.is_raspberry_pi:
-                cmd.append("--disable-dev-shm-usage")
+                cmd.extend(
+                    [
+                        "--disable-dev-shm-usage",
+                        "--force-dark-mode",
+                        # Chromium accepts an RGBA hex value. This applies
+                        # before the first document/CSS paint.
+                        "--default-background-color=000000ff",
+                    ]
+                )
 
             # URL must be last argument for --kiosk mode
             if not self.window_size:
