@@ -7,6 +7,7 @@ import flask_babel
 from flask import jsonify, render_template
 from flask_smorest import Blueprint
 
+from pikaraoke import VERSION
 from pikaraoke.karaoke import Karaoke
 from pikaraoke.lib.current_app import get_karaoke_instance, get_site_name
 from pikaraoke.lib.raspi_wifi_config import get_raspi_wifi_text
@@ -103,4 +104,5 @@ def splash():
         qr_code_position=k.preferences.get_or_default("qr_code_position"),
         qr_code_size=k.preferences.get_or_default("qr_code_size"),
         screensaver_style=k.preferences.get_or_default("screensaver_style"),
+        asset_version=VERSION,
     )

@@ -194,14 +194,22 @@ const playBGVideo = async (play) => {
     if (!autoplayConfirmed) return;
 
     if (isMediaPlaying(bgVideo)) return;
+    // Keep the fallback logo/background visible until Chromium has actually
+    // decoded and started the background video. Showing the video element
+    // earlier can expose a white compositor surface on Raspberry Pi.
+    bgVideoContainer.stop(true, true).hide();
     $("#bg-video").attr("src", withBasePath("/stream/bg_video"));
     if (bgVideo.readyState <= 2) await bgVideo.load();
-    bgVideo.play().catch(() => console.log("Autoplay blocked (video)"));
-    bgVideoContainer.fadeIn(2000);
+    try {
+      await bgVideo.play();
+    } catch (error) {
+      bgVideoContainer.hide();
+      console.log("Autoplay blocked (video)", error);
+    }
   } else {
-    if (bgVideo && isMediaPlaying(bgVideo)) {
+    if (bgVideo) {
       bgVideo.pause();
-      bgVideoContainer.fadeOut(2000);
+      bgVideoContainer.stop(true, true).hide();
     }
   }
 }
@@ -547,6 +555,22 @@ const setupVideoPlayer = () => {
   );
 }
 
+const setupBackgroundVideoPlayer = () => {
+  const bgVideo = getBackgroundVideoPlayer();
+  const container = $("#bg-video-container");
+  container.hide();
+  bgVideo.addEventListener("playing", () => {
+    if (shouldBackgroundMediaPlay()) container.fadeIn(1000);
+  });
+  bgVideo.addEventListener("error", (event) => {
+    console.error("Background video failed:", event);
+    container.stop(true, true).hide();
+  });
+  bgVideo.addEventListener("stalled", () => {
+    if (!isMediaPlaying(bgVideo)) container.stop(true, true).hide();
+  });
+};
+
 const setupBackgroundMusicPlayer = () => {
   $.get(withBasePath("/bg_playlist"), function (data) {
     if (data) bg_playlist = data;
@@ -783,6 +807,7 @@ $(function () {
   setupScreensaver();
   setupOverlayMenus();
   setupVideoPlayer();
+  setupBackgroundVideoPlayer();
   setupBackgroundMusicPlayer();
   splashDomReady = true;
   if (pendingNowPlaying) {

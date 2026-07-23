@@ -26,7 +26,7 @@
     scorePhrasesUrl: "{{ url_for('splash.get_score_phrases') }}",
   };
 </script>
-<script src="{{ url_for('static', filename='js/splash.js') }}"></script>
+<script src="{{ url_for('static', filename='js/splash.js', v=asset_version) }}"></script>
 {% endblock %} {% block body %}
 <div id="top-container" class="overlay">
 <i class="icon icon-mic-1 is-invisible" style="position: absolute" title="Current singer"></i>
@@ -205,9 +205,12 @@
 <style>
   html {
     overflow-y: hidden;
+    background-color: black !important;
   }
-  body {
+  body,
+  .fw-fh-container {
     background-color: black;
+    background-image: none !important;
   }
   #top-container,
   #ap-container,
@@ -292,6 +295,8 @@
     z-index: 0;
     width: 100vw;
     height: 100vh;
+    display: none;
+    background-color: black !important;
   }
   video {
     height: 100%;
@@ -299,7 +304,7 @@
     object-fit: contain;
   }
   body {
-    background-color: black;
+    background-color: black !important;
   }
   .fw-fh-container {
     height: 100vh;
