@@ -97,45 +97,99 @@ def ensure_remote_branch_up_to_date(remote_name, branch):
         )
 
 
-def ensure_tag_absent(tag_name, remote_name):
-    local_tag = run_command(["git", "tag", "--list", tag_name]).stdout.strip()
-    if local_tag:
-        raise ReleaseError(f"Tag '{tag_name}' already exists locally.")
+def get_remote_tag_commit(remote_name, tag_name):
+    output = run_command(["git", "ls-remote", "--tags", remote_name, tag_name]).stdout.strip()
+    if not output:
+        return None
+    # Prefer the dereferenced (^{}) entry which points at the commit for annotated tags.
+    lines = output.splitlines()
+    for line in lines:
+        if line.endswith(f"refs/tags/{tag_name}^{{}}"):
+            return line.split()[0]
+    return lines[0].split()[0]
 
-    remote_tags = run_command(["git", "ls-remote", "--tags", remote_name, tag_name]).stdout.strip()
-    if remote_tags:
-        raise ReleaseError(f"Tag '{tag_name}' already exists on remote '{remote_name}'.")
+
+def ensure_tag_ready(tag_name, remote_name):
+    """Create and push the tag if missing. Returns True if the tag already existed on the remote."""
+    local_head = run_command(["git", "rev-parse", "HEAD"]).stdout.strip()
+    remote_commit = get_remote_tag_commit(remote_name, tag_name)
+
+    if remote_commit is None:
+        local_tag = run_command(["git", "tag", "--list", tag_name]).stdout.strip()
+        if local_tag:
+            raise ReleaseError(f"Tag '{tag_name}' already exists locally but not on remote '{remote_name}'.")
+        run_command(["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"])
+        try:
+            run_command(["git", "push", remote_name, tag_name])
+        except ReleaseError:
+            run_command(["git", "tag", "-d", tag_name], check=False)
+            raise
+        return False
+
+    commit_matches = remote_commit == local_head or run_command(
+        ["git", "rev-parse", f"{remote_commit}^{{commit}}"], check=False
+    ).stdout.strip() == local_head
+    if not commit_matches:
+        raise ReleaseError(
+            f"Tag '{tag_name}' already exists on remote '{remote_name}' but points at a different commit "
+            f"({remote_commit}) than HEAD ({local_head}). Bump VERSION in constants.py before releasing again."
+        )
+    return True
 
 
-def ensure_release_absent(repository, tag_name):
+def get_github_token():
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if not token:
+        raise ReleaseError(
+            "No GitHub token found. Set the GITHUB_TOKEN (or GH_TOKEN) environment variable with a token "
+            "that has 'repo' scope before publishing a release."
+        )
+    return token
+
+
+def api_request(method, url, token, payload=None):
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
     request = Request(
-        f"https://api.github.com/repos/{repository}/releases/tags/{tag_name}",
+        url,
+        data=data,
+        method=method,
         headers={
             "Accept": "application/vnd.github+json",
+            "Authorization": f"token {token}",
             "User-Agent": "KaraoPi-Release-Script",
+            "Content-Type": "application/json",
         },
     )
+    return urlopen(request, timeout=20)
+
+
+def get_existing_release(repository, tag_name, token):
     try:
-        with urlopen(request, timeout=10) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        with api_request("GET", f"https://api.github.com/repos/{repository}/releases/tags/{tag_name}", token) as response:
+            return json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         if exc.code == 404:
-            return
+            return None
         raise ReleaseError(f"Unable to check existing GitHub release: {exc}")
     except URLError as exc:
         raise ReleaseError(f"Unable to check existing GitHub release: {exc}")
 
-    release_url = payload.get("html_url", "GitHub")
-    raise ReleaseError(f"A GitHub release already exists for tag '{tag_name}': {release_url}")
 
-
-def create_and_push_tag(tag_name, remote_name):
-    run_command(["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"])
+def create_github_release(repository, tag_name, token):
+    payload = {
+        "tag_name": tag_name,
+        "name": tag_name,
+        "generate_release_notes": True,
+        "make_latest": "true",
+    }
     try:
-        run_command(["git", "push", remote_name, tag_name])
-    except ReleaseError:
-        run_command(["git", "tag", "-d", tag_name], check=False)
-        raise
+        with api_request("POST", f"https://api.github.com/repos/{repository}/releases", token, payload) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        error_body = exc.read().decode("utf-8", "ignore")
+        raise ReleaseError(f"Unable to create GitHub release: {exc}\n{error_body}")
+    except URLError as exc:
+        raise ReleaseError(f"Unable to create GitHub release: {exc}")
 
 
 def main(argv=None):
@@ -156,18 +210,27 @@ def main(argv=None):
     ensure_remote_exists(args.remote)
     ensure_origin_matches_repository(args.remote, repository)
     ensure_remote_branch_up_to_date(args.remote, args.branch)
-    ensure_tag_absent(tag_name, args.remote)
-    ensure_release_absent(repository, tag_name)
+
+    token = get_github_token()
+    existing_release = get_existing_release(repository, tag_name, token)
+    if existing_release:
+        print(f"Release checks passed for {repository} {tag_name} on branch {branch}.")
+        print(f"GitHub release already published: {existing_release.get('html_url')}")
+        return 0
 
     print(f"Release checks passed for {repository} {tag_name} on branch {branch}.")
     if args.dry_run:
-        print("Dry run enabled, tag was not created.")
+        print("Dry run enabled, no tag or release was created.")
         return 0
 
-    create_and_push_tag(tag_name, args.remote)
-    print(
-        "Tag pushed successfully. GitHub Actions will now publish the GitHub release automatically from this tag."
-    )
+    tag_already_existed = ensure_tag_ready(tag_name, args.remote)
+    if tag_already_existed:
+        print(f"Tag '{tag_name}' already published on remote '{args.remote}', reusing it.")
+    else:
+        print(f"Tag '{tag_name}' created and pushed to remote '{args.remote}'.")
+
+    release = create_github_release(repository, tag_name, token)
+    print(f"GitHub release published automatically: {release.get('html_url')}")
     return 0
 
 

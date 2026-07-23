@@ -134,15 +134,14 @@ If the update fails, inspect `karaopi-update.log` in the application directory o
 
 ### Publishing a release
 
-This repository now includes a release publication script and a GitHub Actions workflow.
+This repository includes a fully automated release publication script: `scripts/publish_release.py`. It requires a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable set to a GitHub personal access token with `repo` scope.
 
 1. Increment `VERSION` in `constants.py` after your code changes are complete.
 2. Commit and push your changes to `main`.
 3. Run `py -3 scripts/publish_release.py` from the repository root.
-4. The script verifies the worktree is clean, confirms `origin` targets `Micpi/KaraoPi`, checks that `HEAD` matches `origin/main`, ensures `v<VERSION>` does not already exist, then pushes the new tag.
-5. GitHub Actions automatically creates the published GitHub Release from that tag with generated release notes.
+4. The script verifies the worktree is clean, confirms `origin` targets `Micpi/KaraoPi`, checks that `HEAD` matches `origin/main`, creates and pushes the `v<VERSION>` tag (or reuses it if already pushed), then publishes the GitHub Release directly through the GitHub API with auto-generated release notes.
 
-Use `py -3 scripts/publish_release.py --dry-run` to validate everything without creating the tag.
+The script is idempotent: running it again after the release was already published simply reports the existing release instead of failing. Use `py -3 scripts/publish_release.py --dry-run` to validate everything without creating the tag or the release.
 
 ## Auto-start PiKaraoke
 
