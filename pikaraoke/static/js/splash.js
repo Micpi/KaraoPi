@@ -40,6 +40,8 @@ let backgroundVideoReady = false;
 let backgroundMusicReady = false;
 let backgroundPlaylistLoaded = false;
 let splashReadyEmitted = false;
+let expectedPlaybackDuration = 0;
+const prematureEndRecoveryKey = "pikaraokePrematureEndRecoveryCount";
 
 const reportSplashReady = () => {
   if (splashReadyEmitted || !splashDomReady || !autoplayConfirmed || !isMaster) return;
@@ -489,9 +491,19 @@ const handleNowPlayingUpdate = (np) => {
     currentVideoUrl = np.now_playing_url;
     endingPlaybackId = null;
     hlsRecoveryAttempts = 0;
+    expectedPlaybackDuration = Number(np.now_playing_duration) || 0;
     const streamUrl = np.now_playing_url;
+    const resumePosition = Number(np.now_playing_position) || 0;
 
     video.pause();
+    if (resumePosition > 1) {
+      video.addEventListener("loadedmetadata", () => {
+        if (currentVideoUrl === streamUrl && video.currentTime < resumePosition - 2) {
+          console.log("Restoring recovered playback position:", resumePosition);
+          video.currentTime = resumePosition;
+        }
+      }, { once: true });
+    }
     // Subtitle rendering is tied to the media identity. Rebuilding its WASM
     // canvas on every queue/volume update can interrupt the Pi compositor.
     if (octopusInstance) {
@@ -601,13 +613,6 @@ const handleNowPlayingUpdate = (np) => {
       duration.hide();
     }
 
-    if (np.now_playing_position && isMediaPlaying(video)) {
-      if (Math.abs(video.currentTime - np.now_playing_position) > 2) {
-        console.log("Syncing to server position:", np.now_playing_position);
-        video.currentTime = np.now_playing_position;
-      }
-    }
-
   }
 }
 
@@ -698,8 +703,34 @@ const setupVideoPlayer = () => {
     }
   }, 1000);
 
-  video.addEventListener("ended", () => { endSong("complete", true); });
-  video.addEventListener("timeupdate", (e) => { $("#current").text(formatTime(video.currentTime)); });
+  video.addEventListener("ended", () => {
+    const remaining = expectedPlaybackDuration - video.currentTime;
+    const tolerance = Math.max(5, expectedPlaybackDuration * 0.025);
+    if (expectedPlaybackDuration > 0 && remaining > tolerance) {
+      const attempts = Number(sessionStorage.getItem(prematureEndRecoveryKey) || 0);
+      console.error(
+        `Firefox/media pipeline ended ${remaining.toFixed(1)}s too early (attempt ${attempts + 1})`
+      );
+      if (attempts < 2) {
+        sessionStorage.setItem(prematureEndRecoveryKey, String(attempts + 1));
+        setTimeout(() => location.reload(), 400);
+      } else {
+        sessionStorage.removeItem(prematureEndRecoveryKey);
+        endSong("premature browser end", false);
+      }
+      return;
+    }
+    sessionStorage.removeItem(prematureEndRecoveryKey);
+    endSong("complete", true);
+  });
+  video.addEventListener("timeupdate", () => {
+    $("#current").text(formatTime(video.currentTime));
+    // Once a recovered stream has played a meaningful interval, a later
+    // decoder incident may use the recovery budget again.
+    if (video.currentTime > Math.min(30, expectedPlaybackDuration * 0.25)) {
+      sessionStorage.removeItem(prematureEndRecoveryKey);
+    }
+  });
   const monitorPlaybackStall = (event) => {
     if (!currentVideoUrl || video.ended || splashRecoveryScheduled) return;
     clearTimeout(stalledPlaybackTimer);

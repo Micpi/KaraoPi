@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import os
 import re
@@ -166,9 +165,8 @@ def main():
         "--auto-close",
         "--percentage=0",
         "--title=KaraoPi",
-        "--text=<span size='x-large' weight='bold'>KaraoPi</span>\n\nPreparing the system…",
+        "--text=KARΛOPI\n\nPreparing the system…",
         "--text-align=center",
-        "--text-use-markup",
     ]
     if args.logo and os.path.isfile(args.logo):
         command.extend([f"--image={args.logo}", "--image-on-top"])
@@ -188,10 +186,7 @@ def main():
                 payload = (status.get("progress"), status.get("message"), status.get("state"))
                 if payload != last_payload and process.stdin:
                     message = str(status.get("message") or "Updating KaraoPi").replace("\n", " ")
-                    display_message = (
-                        "<span size='x-large' weight='bold'>KaraoPi</span>\n\n"
-                        + html.escape(message)
-                    )
+                    display_message = "KARΛOPI\n\n" + message
                     process.stdin.write(
                         f"#{display_message}\n{int(status.get('progress', 0))}\n"
                     )

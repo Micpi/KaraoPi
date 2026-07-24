@@ -151,14 +151,19 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # Show the same centered system window during a normal appliance boot. The
 # splash registration event changes this status to "complete" and closes it.
 STARTUP_STATUS_FILE="$KARAOPI_INSTALL_DIR/.karaopi_update_status.json"
-if [ ! -f "$STARTUP_STATUS_FILE" ] && [ ! -f "$KARAOPI_INSTALL_DIR/.karaopi_update_pending.json" ]; then
+if [ ! -f "$STARTUP_STATUS_FILE" ]; then
   printf '%s\n' '{"progress":12,"message":"Starting KaraoPi system services","state":"awaiting_browser"}' > "$STARTUP_STATUS_FILE"
-  if command -v python3 >/dev/null 2>&1 && [ -f "$KARAOPI_INSTALL_DIR/scripts/karaopi_update_display.py" ]; then
-    python3 "$KARAOPI_INSTALL_DIR/scripts/karaopi_update_display.py" \
-      --status-file "$STARTUP_STATUS_FILE" \
-      --logo "$KARAOPI_INSTALL_DIR/pikaraoke/static/images/karaopi-logo-boot.png" \
-      >/dev/null 2>&1 &
-  fi
+fi
+# A normal appliance boot always owns a fresh startup state. Preserve an
+# existing status only when a release update is genuinely pending.
+if [ ! -f "$KARAOPI_INSTALL_DIR/.karaopi_update_pending.json" ]; then
+  printf '%s\n' '{"progress":12,"message":"Starting KaraoPi system services","state":"awaiting_browser"}' > "$STARTUP_STATUS_FILE"
+fi
+if command -v python3 >/dev/null 2>&1 && [ -f "$KARAOPI_INSTALL_DIR/scripts/karaopi_update_display.py" ]; then
+  python3 "$KARAOPI_INSTALL_DIR/scripts/karaopi_update_display.py" \
+    --status-file "$STARTUP_STATUS_FILE" \
+    --logo "$KARAOPI_INSTALL_DIR/pikaraoke/static/images/karaopi-logo-boot.png" \
+    >/dev/null 2>&1 &
 fi
 
 while true; do
