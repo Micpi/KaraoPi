@@ -106,11 +106,12 @@ def setup_socket_events(socketio):
     @socketio.on("splash_ready")
     def splash_ready() -> None:
         """Close the boot/update display only after media produced a frame."""
-        if request.sid != master_splash_id:
+        if request.sid not in splash_connections:
+            logging.warning("Ignoring splash_ready from an unregistered client")
             return
         app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         mark_update_display_complete(app_root)
-        logging.info("Master splash reported that its media pipeline is ready")
+        logging.info("Registered splash reported that its media pipeline is ready")
 
     @socketio.on("playback_position")
     def handle_playback_position(data) -> None:

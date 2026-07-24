@@ -40,18 +40,26 @@ let backgroundVideoReady = false;
 let backgroundMusicReady = false;
 let backgroundPlaylistLoaded = false;
 let splashReadyEmitted = false;
+let bootCoverReleased = false;
 let expectedPlaybackDuration = 0;
 const prematureEndRecoveryKey = "pikaraokePrematureEndRecoveryCount";
 
 const releaseBootDisplay = () => {
-  if (splashReadyEmitted || !isMaster || !socket.connected) return;
-  splashReadyEmitted = true;
-  socket.emit("splash_ready");
-  document.getElementById("splash-boot-cover")?.classList.add("is-ready");
+  if (!bootCoverReleased) {
+    bootCoverReleased = true;
+    document.getElementById("splash-boot-cover")?.classList.add("is-ready");
+  }
+  // Hiding the local cover must never depend on the master/slave election.
+  // Any registered splash may also close the separate boot/update window;
+  // only playback-control events remain restricted to the elected master.
+  if (!splashReadyEmitted && socket.connected) {
+    splashReadyEmitted = true;
+    socket.emit("splash_ready");
+  }
 };
 
 const reportSplashReady = () => {
-  if (splashReadyEmitted || !splashDomReady || !autoplayConfirmed || !isMaster) return;
+  if (bootCoverReleased || !splashDomReady || !autoplayConfirmed) return;
   let mediaReady = false;
   if (nowPlaying.now_playing) {
     mediaReady = mainMediaReady;
@@ -65,7 +73,7 @@ const reportSplashReady = () => {
       (backgroundPlaylistLoaded && (bg_playlist.length === 0 || backgroundMusicReady));
     mediaReady = videoReady && musicReady;
   }
-  if (mediaReady && socket.connected) {
+  if (mediaReady) {
     releaseBootDisplay();
   }
 };
@@ -196,10 +204,15 @@ const testAutoplayCapability = async () => {
     testVideo.src = withBasePath("/static/video/test_autoplay.mp4");
 
     // Wait for video to be ready
-    await new Promise((resolve, reject) => {
+    await Promise.race([
+      new Promise((resolve, reject) => {
       testVideo.onloadeddata = resolve;
       testVideo.onerror = reject;
-    });
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("autoplay capability test timeout")), 5000)
+      ),
+    ]);
 
     await testVideo.play();
     testVideo.pause();
@@ -1046,11 +1059,11 @@ $(function () {
   // A missing/corrupt optional background asset must not leave the diagnostic
   // boot window permanently above an otherwise usable splash.
   setTimeout(() => {
-    if (!splashReadyEmitted && isMaster && socket.connected) {
+    if (!bootCoverReleased) {
       console.warn("Splash media readiness timed out; releasing boot display");
       releaseBootDisplay();
     }
-  }, 30000);
+  }, 20000);
 });
 
 
