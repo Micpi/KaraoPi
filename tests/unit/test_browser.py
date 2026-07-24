@@ -43,3 +43,14 @@ def test_pi_display_is_painted_black_when_xsetroot_is_available():
         timeout=3,
         check=False,
     )
+
+
+def test_pi_chromium_flags_keep_gpu_acceleration_and_bound_cache():
+    flags = Browser._pi_chromium_flags()
+
+    assert "--enable-gpu-rasterization" in flags
+    assert "--enable-zero-copy" in flags
+    assert "--disk-cache-size=67108864" in flags
+    assert "--media-cache-size=134217728" in flags
+    assert "--disable-gpu" not in flags
+    assert "--disable-software-rasterizer" not in flags

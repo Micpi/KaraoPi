@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 import webbrowser
 from typing import TYPE_CHECKING
@@ -39,6 +40,58 @@ class Browser:
         self.browser_process: subprocess.Popen | None = None
         self.browser_profile_dir = os.path.join(get_data_directory(), "browser_profile")
         self.splash_url = f"{self.karaoke.url}/splash"
+        self._closing = threading.Event()
+        self._watchdog_thread: threading.Thread | None = None
+
+    @staticmethod
+    def _pi_chromium_flags() -> list[str]:
+        """Stable kiosk/video flags that retain Raspberry Pi GPU acceleration."""
+        return [
+            "--force-dark-mode",
+            "--default-background-color=000000ff",
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            # The splash must keep full scheduling priority even when the
+            # compositor briefly considers its fullscreen window occluded.
+            "--disable-renderer-backgrounding",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-features=MediaRouter,OptimizationHints,Translate",
+            "--disable-component-update",
+            "--disable-pinch",
+            "--overscroll-history-navigation=0",
+            # Bound caches so a kiosk profile used for months cannot gradually
+            # consume the SD card or become sluggish.
+            "--disk-cache-size=67108864",
+            "--media-cache-size=134217728",
+        ]
+
+    def _start_watchdog(self) -> None:
+        if not self.karaoke.is_raspberry_pi:
+            return
+        if self._watchdog_thread and self._watchdog_thread.is_alive():
+            return
+        self._watchdog_thread = threading.Thread(
+            target=self._watch_browser,
+            daemon=True,
+            name="karaopi-chromium-watchdog",
+        )
+        self._watchdog_thread.start()
+
+    def _watch_browser(self) -> None:
+        """Relaunch Chromium if the kiosk browser itself crashes on the Pi."""
+        while not self._closing.wait(3):
+            process = self.browser_process
+            if process is None or process.poll() is None:
+                continue
+            logging.warning(
+                "Chromium kiosk exited unexpectedly with code %s; relaunching",
+                process.returncode,
+            )
+            self.browser_process = None
+            if self._closing.wait(2):
+                return
+            self.launch_splash_screen()
 
     def _get_screen_resolution(self) -> str | None:
         """Detect the primary display resolution via xrandr (Linux/X11 only).
@@ -184,6 +237,7 @@ class Browser:
                     "--no-default-browser-check",
                     "--disable-infobars",
                     "--disable-session-crashed-bubble",
+                    "--noerrdialogs",
                     "--disable-translate",
                     "--disable-restore-session-state",
                     "--disable-background-networking",
@@ -201,14 +255,7 @@ class Browser:
 
             # Pi optimizations
             if self.karaoke.is_raspberry_pi:
-                cmd.extend(
-                    [
-                        "--force-dark-mode",
-                        # Chromium accepts an RGBA hex value. This applies
-                        # before the first document/CSS paint.
-                        "--default-background-color=000000ff",
-                    ]
-                )
+                cmd.extend(self._pi_chromium_flags())
 
             # URL must be last argument for --kiosk mode
             if not self.window_size:
@@ -217,6 +264,7 @@ class Browser:
             logging.debug(f"Browser command: {' '.join(cmd)}")
             try:
                 self.browser_process = subprocess.Popen(cmd, stdout=stdout_dest, stderr=stderr_dest)
+                self._start_watchdog()
             except OSError as e:
                 logging.error(f"Failed to launch browser subprocess: {e}")
         else:
@@ -229,6 +277,7 @@ class Browser:
 
     def close(self):
         """Close the browser process and all child processes."""
+        self._closing.set()
         if self.browser_process is not None:
             logging.info(f"Terminating browser process {self.browser_process.pid}")
             if is_windows():
@@ -253,3 +302,5 @@ class Browser:
             self.browser_process = None
         else:
             logging.warning("Browser opened via system default cannot be closed by PiKaraoke.")
+        if self._watchdog_thread and self._watchdog_thread is not threading.current_thread():
+            self._watchdog_thread.join(timeout=5)
