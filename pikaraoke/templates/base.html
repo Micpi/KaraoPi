@@ -304,6 +304,20 @@
 <body class="{% block body_class %}{% endblock %}">
 
   {% if not blank_page %}
+  <button type="button" class="navbar-burger page-menu-toggle" aria-label="{{ _('Menu') }}" aria-controls="menu" aria-expanded="false">
+    <svg class="page-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <g class="menu-icon-open">
+        <path d="M4 7h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 17h16"></path>
+      </g>
+      <g class="menu-icon-close">
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6L6 18"></path>
+      </g>
+    </svg>
+  </button>
+
   <div class="container app-shell">
     <nav class="navbar" role="navigation" aria-label="main navigation">
       <div class="navbar-brand" id="brand">
@@ -386,20 +400,6 @@
         </div>
       </div>
     </nav>
-
-    <a role="button" class="navbar-burger page-menu-toggle" aria-label="{{ _('Menu') }}" aria-expanded="false">
-      <svg class="page-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <g class="menu-icon-open">
-          <path d="M4 7h16"></path>
-          <path d="M4 12h16"></path>
-          <path d="M4 17h16"></path>
-        </g>
-        <g class="menu-icon-close">
-          <path d="M6 6l12 12"></path>
-          <path d="M18 6L6 18"></path>
-        </g>
-      </svg>
-    </a>
 
     {% if get_flashed_messages() %}
     {% for category, message in get_flashed_messages(with_categories=true) %}

@@ -1,1 +1,1 @@
-__version__ = "1.23.42"  # {x-release-please-version}
+__version__ = "1.23.43"  # {x-release-please-version}

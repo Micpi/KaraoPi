@@ -2037,24 +2037,26 @@ input[type="range"] {
     margin-bottom: 0;
   }
 
-  .app-shell > .page-menu-toggle {
+  body > .page-menu-toggle {
     position: fixed;
-    top: max(10px, env(safe-area-inset-top));
-    right: max(10px, env(safe-area-inset-right));
-    z-index: 120;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: calc(env(safe-area-inset-right) + 10px);
+    z-index: 2147483647;
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
     margin: 0;
     padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 15px;
+    background: rgba(15, 17, 25, .68);
+    color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    touch-action: manipulation;
   }
 
   .page-menu-toggle .page-menu-icon {
@@ -2068,7 +2070,7 @@ input[type="range"] {
     top: calc(max(8px, env(safe-area-inset-top)) + 72px);
     right: max(8px, env(safe-area-inset-right));
     left: max(8px, env(safe-area-inset-left));
-    z-index: 110;
+    z-index: 2147483646;
     width: auto;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 92px - env(safe-area-inset-bottom));
     overflow-y: auto;

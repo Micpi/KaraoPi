@@ -68,8 +68,9 @@
         $(document).on('click', '.navbar-burger', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            $('.navbar-burger').toggleClass('is-active');
-            $('.navbar-menu').toggleClass('is-active');
+            const isActive = !$(this).hasClass('is-active');
+            $(this).toggleClass('is-active', isActive).attr('aria-expanded', isActive);
+            $('.navbar-menu').toggleClass('is-active', isActive);
         });
     }
 
