@@ -22,20 +22,35 @@ def setup_socket_events(socketio):
     """
 
     @socketio.on("end_song")
-    def end_song(reason: str) -> None:
+    def end_song(data) -> None:
         """Handle end_song WebSocket event from client.
 
         Args:
             reason: Reason for ending the song (e.g., 'complete', 'error').
         """
+        if request.sid != master_splash_id:
+            logging.warning("Ignoring end_song from non-master splash %s", request.sid)
+            return
+        if isinstance(data, dict):
+            reason = data.get("reason")
+            playback_id = data.get("playback_id")
+        else:
+            logging.warning("Ignoring end_song without a playback identity")
+            return
+        if not playback_id:
+            logging.warning("Ignoring end_song with an empty playback identity")
+            return
         k = get_karaoke_instance()
-        k.playback_controller.end_song(reason)
+        k.playback_controller.end_song(reason, playback_id=playback_id)
 
     @socketio.on("start_song")
-    def start_song() -> None:
+    def start_song(data=None) -> None:
         """Handle start_song WebSocket event when playback begins."""
+        if request.sid != master_splash_id:
+            return
+        playback_id = data.get("playback_id") if isinstance(data, dict) else None
         k = get_karaoke_instance()
-        k.playback_controller.start_song()
+        k.playback_controller.start_song(playback_id=playback_id)
 
     @socketio.on("record_score")
     def record_score(data: dict) -> None:
@@ -92,7 +107,7 @@ def setup_socket_events(socketio):
         socketio.emit("now_playing", k.get_now_playing(), room=sid)
 
     @socketio.on("playback_position")
-    def handle_playback_position(position: float) -> None:
+    def handle_playback_position(data) -> None:
         """Handle playback_position WebSocket event from the master splash screen.
 
         Args:
@@ -102,6 +117,19 @@ def setup_socket_events(socketio):
         sid = request.sid
         if sid == master_splash_id:
             k = get_karaoke_instance()
+            if isinstance(data, dict):
+                position = data.get("position")
+                playback_id = data.get("playback_id")
+            else:
+                position, playback_id = data, None
+            if playback_id and playback_id != k.playback_controller.now_playing_url:
+                return
+            try:
+                position = float(position)
+            except (TypeError, ValueError):
+                return
+            if position < 0:
+                return
             k.playback_controller.now_playing_position = position
             # Broadcast position to all other splash screens (slaves)
             socketio.emit("playback_position", position, include_self=False)

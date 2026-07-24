@@ -194,6 +194,14 @@ class TestPlaybackControllerStartSong:
 
         assert pc.is_playing is True
 
+    def test_start_song_rejects_stale_playback_id(self, test_prefs):
+        events = EventSystem()
+        pc = PlaybackController(test_prefs, events, lambda value, **_: value)
+        pc.now_playing_url = "/stream/current.m3u8"
+
+        assert pc.start_song("/stream/old.m3u8") is False
+        assert pc.is_playing is False
+
 
 class TestPlaybackControllerEndSong:
     """Tests for PlaybackController.end_song method."""
@@ -222,6 +230,25 @@ class TestPlaybackControllerEndSong:
         mock_delete.assert_called_once()
         mock_sleep.assert_called_once()
         assert "song_ended" in emitted_events
+
+    @patch("pikaraoke.lib.playback_controller.time.sleep")
+    @patch("pikaraoke.lib.playback_controller.delete_tmp_dir")
+    def test_end_song_is_idempotent_and_rejects_stale_id(
+        self, mock_delete, mock_sleep, test_prefs
+    ):
+        events = EventSystem()
+        pc = PlaybackController(test_prefs, events, lambda value, **_: value)
+        pc.now_playing = "Current"
+        pc.now_playing_url = "/stream/current.m3u8"
+        pc.is_playing = True
+        pc.stream_manager.kill_ffmpeg = MagicMock()
+
+        assert pc.end_song("complete", "/stream/old.m3u8") is False
+        assert pc.now_playing == "Current"
+        assert pc.end_song("complete", "/stream/current.m3u8") is True
+        assert pc.end_song("complete", "/stream/current.m3u8") is False
+        pc.stream_manager.kill_ffmpeg.assert_called_once()
+        mock_delete.assert_called_once()
 
 
 class TestPlaybackControllerSkip:

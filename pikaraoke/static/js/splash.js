@@ -14,6 +14,7 @@ let isScoreShown = false;
 const hasBgVideo = PikaraokeConfig.hasBgVideo;
 let currentVideoUrl = null;
 let hlsInstance = null;
+let hlsRecoveryAttempts = 0;
 let idleTime = 0;
 let screensaverTimeoutSeconds = PikaraokeConfig.screensaverTimeout;
 let bg_playlist = [];
@@ -33,6 +34,7 @@ let splashRecoveryScheduled = false;
 let playbackWatchdogTimer = null;
 let stalledPlaybackTimer = null;
 let firstVideoFrameRendered = false;
+let endingPlaybackId = null;
 
 const scheduleKioskBootReload = () => {
   const url = new URL(window.location.href);
@@ -188,6 +190,12 @@ const hideVideo = () => {
 }
 
 const endSong = async (reason = null, showScore = false) => {
+    const playbackId = currentVideoUrl;
+    if (!playbackId || endingPlaybackId === playbackId) {
+        console.log("Ignoring duplicate/stale endSong request", reason);
+        return;
+    }
+    endingPlaybackId = playbackId;
     if (showScore && !PikaraokeConfig.disableScore) {
         isScoreShown = true;
         await startScore(withBasePath("/static/"));
@@ -207,7 +215,7 @@ const endSong = async (reason = null, showScore = false) => {
     video.load();
     hideVideo();
     if (isMaster) {
-        socket.emit("end_song", reason);
+        socket.emit("end_song", { reason: reason, playback_id: playbackId });
     } else {
         console.log("Slave active (read-only): skipping end_song emission");
     }
@@ -449,41 +457,42 @@ const handleNowPlayingUpdate = (np) => {
 
   const video = getVideoPlayer();
 
-  // Setup ASS subtitle file if found
-  const subtitleUrl = np.now_playing_subtitle_url;
-  if (octopusInstance) {
-    octopusInstance.dispose();
-    octopusInstance = null;
-  }
-  if (subtitleUrl && video) {
-    const options = {
-      video: video,
-      subUrl: subtitleUrl,
-      fonts: [
-        withBasePath("/static/fonts/Arial.ttf"),
-        withBasePath("/static/fonts/DroidSansFallback.ttf"),
-      ],
-      debug: true,
-      workerUrl: withBasePath("/static/js/subtitles-octopus-worker.js")
-    };
-    try {
-      octopusInstance = new SubtitlesOctopus(options);
-      if (uiScale) {
-        // Find the canvas created by SubtitlesOctopus (sibling of the video)
-        const canvas = video.parentNode.querySelector('canvas');
-        if (canvas) {
-          canvas.style.transform = `scale(${uiScale})`;
-          canvas.style.transformOrigin = 'bottom center';
-        }
-      }
-    } catch (e) { console.error(e); }
-  }
-
   if (np.now_playing_url && np.now_playing_url !== currentVideoUrl) {
     currentVideoUrl = np.now_playing_url;
+    endingPlaybackId = null;
+    hlsRecoveryAttempts = 0;
     const streamUrl = np.now_playing_url;
 
     video.pause();
+    // Subtitle rendering is tied to the media identity. Rebuilding its WASM
+    // canvas on every queue/volume update can interrupt the Pi compositor.
+    if (octopusInstance) {
+      octopusInstance.dispose();
+      octopusInstance = null;
+    }
+    const subtitleUrl = np.now_playing_subtitle_url;
+    if (subtitleUrl && video) {
+      const options = {
+        video: video,
+        subUrl: subtitleUrl,
+        fonts: [
+          withBasePath("/static/fonts/Arial.ttf"),
+          withBasePath("/static/fonts/DroidSansFallback.ttf"),
+        ],
+        debug: false,
+        workerUrl: withBasePath("/static/js/subtitles-octopus-worker.js")
+      };
+      try {
+        octopusInstance = new SubtitlesOctopus(options);
+        if (uiScale) {
+          const canvas = video.parentNode.querySelector('canvas');
+          if (canvas) {
+            canvas.style.transform = `scale(${uiScale})`;
+            canvas.style.transformOrigin = 'bottom center';
+          }
+        }
+      } catch (e) { console.error(e); }
+    }
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
@@ -521,11 +530,13 @@ const handleNowPlayingUpdate = (np) => {
           });
         });
         hlsInstance.on(Hls.Events.ERROR, function (_event, data) {
+          if (currentVideoUrl !== streamUrl || endingPlaybackId === streamUrl) return;
           if (data.fatal) {
             console.error("Fatal HLS error:", data);
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            hlsRecoveryAttempts += 1;
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsRecoveryAttempts <= 2) {
               hlsInstance.startLoad();
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsRecoveryAttempts <= 2) {
               hlsInstance.recoverMediaError();
             } else if (!recoverSplash(`fatal HLS error: ${data.type}`)) {
               endSong("fatal HLS error");
@@ -640,14 +651,22 @@ const setupVideoPlayer = () => {
       confirmVideoFrame();
     }
     if (isMaster) {
-      setTimeout(() => { socket.emit("start_song") }, 1200);
+      const playbackId = currentVideoUrl;
+      setTimeout(() => {
+        if (playbackId && currentVideoUrl === playbackId && !video.paused) {
+          socket.emit("start_song", { playback_id: playbackId });
+        }
+      }, 1200);
     }
   });
 
   // Master reports playback position to server
   setInterval(() => {
     if (isMaster && isMediaPlaying(video)) {
-      socket.emit("playback_position", video.currentTime);
+      socket.emit("playback_position", {
+        position: video.currentTime,
+        playback_id: currentVideoUrl,
+      });
     }
   }, 1000);
 

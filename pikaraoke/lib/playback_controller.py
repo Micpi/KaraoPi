@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 import time
 from typing import TYPE_CHECKING, Callable
 
@@ -68,6 +69,10 @@ class PlaybackController:
         self.events = events
         self.filename_from_path = filename_from_path
         self.stream_manager = StreamManager(preferences, streaming_format, base_path)
+        # Socket events, HTTP stream requests and the queue loop run in
+        # different threads. Serialize state transitions so a delayed "ended"
+        # event cannot tear down the following song.
+        self._state_lock = threading.RLock()
 
     @property
     def ffmpeg_process(self) -> "subprocess.Popen | None":
@@ -129,38 +134,56 @@ class PlaybackController:
         logging.debug("Stream is playing")
         return result
 
-    def start_song(self) -> None:
+    def start_song(self, playback_id: str | None = None) -> bool:
         """Mark the current song as actively playing.
 
         Called by Flask route when client connects to stream.
         Idempotent - safe to call multiple times.
         """
-        if not self.is_playing:
-            logging.info(f"Song starting: {self.now_playing}")
-            self.is_playing = True
+        with self._state_lock:
+            if not self.now_playing_url and not self.now_playing:
+                return False
+            if playback_id and playback_id != self.now_playing_url:
+                logging.info("Ignoring stale playback-start event for %s", playback_id)
+                return False
+            if not self.is_playing:
+                logging.info(f"Song starting: {self.now_playing}")
+                self.is_playing = True
+            return True
 
-    def end_song(self, reason: str | None = None) -> None:
+    def end_song(self, reason: str | None = None, playback_id: str | None = None) -> bool:
         """End the current song and clean up resources.
 
         Args:
             reason: Optional reason for ending (e.g., 'complete', 'skip', 'timeout').
         """
-        logging.info(f"Song ending: {self.now_playing}")
-        if reason:
-            logging.info(f"Reason: {reason}")
-            if reason not in ("complete", "skip"):
-                # MSG: Message shown when the song ends abnormally
-                self.events.emit("notification", _("Song ended abnormally: %s") % reason, "danger")
+        with self._state_lock:
+            if not self.now_playing_url and not self.now_playing:
+                logging.debug("Ignoring duplicate end-song event: no active playback")
+                return False
+            if playback_id and playback_id != self.now_playing_url:
+                logging.info("Ignoring stale end-song event for %s", playback_id)
+                return False
 
-        self.reset_now_playing()
-        self.stream_manager.kill_ffmpeg()
-        # Small delay to ensure FFmpeg fully terminates and file handles close
-        # Critical on Raspberry Pi with slow SD cards and hardware encoder cleanup
-        time.sleep(0.3)
-        delete_tmp_dir()
-        logging.debug("Cleanup complete")
+            logging.info(f"Song ending: {self.now_playing}")
+            if reason:
+                logging.info(f"Reason: {reason}")
+                if reason not in ("complete", "skip"):
+                    # MSG: Message shown when the song ends abnormally
+                    self.events.emit(
+                        "notification", _("Song ended abnormally: %s") % reason, "danger"
+                    )
 
-        self.events.emit("song_ended")
+            # Invalidate the playback ID before slow resource cleanup. Any
+            # duplicate Socket.IO event arriving during cleanup is then harmless.
+            self.reset_now_playing()
+            self.stream_manager.kill_ffmpeg()
+            time.sleep(0.3)
+            delete_tmp_dir()
+            logging.debug("Cleanup complete")
+
+            self.events.emit("song_ended")
+            return True
 
     def skip(self, log_action: bool = True) -> bool:
         """Skip the currently playing song.
