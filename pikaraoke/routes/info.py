@@ -74,6 +74,7 @@ def info():
         disable_score=k.disable_score,
         hide_notifications=k.hide_notifications,
         show_splash_clock=k.show_splash_clock,
+        clock_format=k.preferences.get_or_default("clock_format"),
         hide_url=k.hide_url,
         hide_overlay=k.hide_overlay,
         screensaver_timeout=k.screensaver_timeout,

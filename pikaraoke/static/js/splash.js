@@ -692,14 +692,21 @@ const handleUnsupportedBrowser = () => {
   }
 }
 
+const updateClock = () => {
+  const el = document.getElementById('clock');
+  if (el) {
+    el.textContent = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: PikaraokeConfig.clockFormat === '12h',
+    });
+  }
+};
+
 const startClock = () => {
   if (clockIntervalId) return;
-  const update = () => {
-    const el = document.getElementById('clock');
-    if (el) el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-  update();
-  clockIntervalId = setInterval(update, 1000);
+  updateClock();
+  clockIntervalId = setInterval(updateClock, 1000);
 }
 
 const stopClock = () => {
@@ -720,6 +727,10 @@ const PREFERENCE_EFFECTS = {
   show_splash_clock:   (v) => {
     PikaraokeConfig.showSplashClock = v;
     v ? startClock() : (stopClock(), $("#clock").hide());
+  },
+  clock_format:        (v) => {
+    PikaraokeConfig.clockFormat = v;
+    updateClock();
   },
   hide_overlay:        (v) => {
     PikaraokeConfig.hideOverlay = v;

@@ -901,6 +901,15 @@ msgstr "Masquer les notifications"
 msgid "Show splash clock"
 msgstr "Afficher l'horloge de démarrage"
 
+msgid "24-hour clock (23:59)"
+msgstr "Horloge 24 heures (23:59)"
+
+msgid "12-hour clock (11:59 PM)"
+msgstr "Horloge 12 heures (11:59 PM)"
+
+msgid "Clock format"
+msgstr "Format de l'horloge"
+
 #. Checkbox label which enable/disables the URL display
 #: templates/info.html:311
 msgid "Hide the URL and QR code"
@@ -990,7 +999,7 @@ msgstr "Merveilleux..."
 #. Title text for the language settings section of preferences
 #: templates/info.html:383
 msgid "Language settings"
-msgstr "Paramètres du serveur"
+msgstr "Paramètres de langue"
 
 # auto-translated
 #. Label for language selection dropdown

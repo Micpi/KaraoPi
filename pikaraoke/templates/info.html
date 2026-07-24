@@ -546,6 +546,17 @@
 						<label class="label" for="pref-splash-clock">{# MSG: Checkbox label which enable/disables the digital clock on the splash screen #} {% trans %}Show splash clock{% endtrans %}
 						</label>
 					</div>
+
+					<div class="user-preference-container is-align-items-center">
+						<div class="select">
+							<select id="pref-clock-format" class="user-preference-input" data-pref="clock_format" data-start-value="{{ clock_format }}">
+								<option value="24h" {% if clock_format == "24h" %}selected{% endif %}>{% trans %}24-hour clock (23:59){% endtrans %}</option>
+								<option value="12h" {% if clock_format == "12h" %}selected{% endif %}>{% trans %}12-hour clock (11:59 PM){% endtrans %}</option>
+							</select>
+						</div>
+						<label class="label" for="pref-clock-format">{% trans %}Clock format{% endtrans %}</label>
+					</div>
+
 					<div class="user-preference-container">
 						<input id="pref-qr-code" type="checkbox" class="user-preference-checkbox checkbox" data-pref="hide_url" {% if hide_url == True %}checked{% endif %}>
 						<label class="label" for="pref-qr-code">{# MSG: Checkbox label which enable/disables the URL display #} {% trans %}Hide the URL and QR code{% endtrans %}

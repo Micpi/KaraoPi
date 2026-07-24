@@ -80,6 +80,7 @@ class Karaoke:
 
     normalize_audio: bool
     show_splash_clock: bool
+    clock_format: str
 
     # Download manager for serialized downloads
     download_manager: DownloadManager
