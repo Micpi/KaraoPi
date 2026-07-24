@@ -257,7 +257,6 @@ class Browser:
                     "-profile",
                     self.firefox_profile_dir,
                     "-kiosk",
-                    "-private-window",
                     launch_url,
                 ]
             else:

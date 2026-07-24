@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Fullscreen console progress display that survives KaraoPi/Chromium restarts."""
+"""Centered console progress display that survives KaraoPi/browser restarts."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -46,8 +47,37 @@ def format_console(status):
         f"  [{progress_bar}]  {progress:3d}%\n\n"
         f"  {message}\n\n"
         "  Please keep the Raspberry Pi powered on.\n"
-        "  This window will close when Chromium is ready.\n"
+        "  This window will close when the splash screen is ready.\n"
     )
+
+
+def centered_xterm_geometry():
+    """Return an xterm geometry centered on the active display."""
+    columns, rows = 92, 22
+    estimated_width, estimated_height = 950, 540
+    screen_width, screen_height = 1920, 1080
+    screen_x, screen_y = 0, 0
+    xrandr = shutil.which("xrandr")
+    if xrandr:
+        try:
+            output = subprocess.run(
+                [xrandr, "--current"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+            ).stdout
+            connected = [line for line in output.splitlines() if " connected" in line]
+            primary = next((line for line in connected if " primary " in line), None)
+            display_line = primary or (connected[0] if connected else "")
+            match = re.search(r"(\d+)x(\d+)\+(\d+)\+(\d+)", display_line)
+            if match:
+                screen_width, screen_height, screen_x, screen_y = map(int, match.groups())
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    x = screen_x + max(0, (screen_width - estimated_width) // 2)
+    y = screen_y + max(0, (screen_height - estimated_height) // 2)
+    return f"{columns}x{rows}+{x}+{y}"
 
 
 def run_console(status_file):
@@ -96,17 +126,18 @@ def main():
     if xterm:
         command = [
             xterm,
-            "-fullscreen",
+            "-geometry",
+            centered_xterm_geometry(),
             "-fa",
             "Monospace",
             "-fs",
-            "18",
+            "16",
             "-bg",
             "#080a0f",
             "-fg",
             "#f4f5f8",
             "-title",
-            "KaraoPi Update",
+            "KaraoPi",
             "-e",
             sys.executable,
             os.path.abspath(__file__),
@@ -124,8 +155,9 @@ def main():
     command = [
         yad,
         "--progress",
-        "--fullscreen",
-        "--undecorated",
+        "--center",
+        "--width=760",
+        "--height=460",
         "--on-top",
         "--skip-taskbar",
         "--no-buttons",

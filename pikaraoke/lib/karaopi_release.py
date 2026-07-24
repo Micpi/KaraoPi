@@ -235,7 +235,7 @@ def apply_pending_update(app_root):
     install_requirements(app_root)
     clear_pending_update_marker(app_root)
     write_update_status(
-        app_root, 94, "Starting KaraoPi and Chromium", state="awaiting_browser"
+        app_root, 94, "Starting KaraoPi and the splash screen", state="awaiting_browser"
     )
     logging.info("KaraoPi update to %s applied successfully.", marker["tag"])
     return True
@@ -465,7 +465,9 @@ def run_update(app_root, repository, tag, zip_url, wait_for_pid, relaunch_comman
 
     write_update_status(app_root, 78, "Updating dependencies")
     install_requirements(app_root)
-    write_update_status(app_root, 94, "Starting KaraoPi and Chromium", state="awaiting_browser")
+    write_update_status(
+        app_root, 94, "Starting KaraoPi and the splash screen", state="awaiting_browser"
+    )
     relaunch_application(relaunch_command, app_root)
     logging.info("KaraoPi update finished successfully.")
 
