@@ -910,6 +910,27 @@ msgstr "Horloge 12 heures (11:59 PM)"
 msgid "Clock format"
 msgstr "Format de l'horloge"
 
+msgid "Interface theme"
+msgstr "Thème de l'interface"
+
+msgid "Midnight violet"
+msgstr "Violet nocturne"
+
+msgid "Deep ocean"
+msgstr "Océan profond"
+
+msgid "Northern lights"
+msgstr "Aurore boréale"
+
+msgid "Modern sunset"
+msgstr "Coucher de soleil moderne"
+
+msgid "Graphite minimal"
+msgstr "Graphite minimal"
+
+msgid "The selected theme is applied to the complete web interface after saving."
+msgstr "Le thème sélectionné est appliqué à toute l'interface web après l'enregistrement."
+
 #. Checkbox label which enable/disables the URL display
 #: templates/info.html:311
 msgid "Hide the URL and QR code"

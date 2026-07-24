@@ -23,6 +23,7 @@ from pikaraoke import VERSION, karaoke
 from pikaraoke.constants import LANGUAGES
 from pikaraoke.lib.args import parse_pikaraoke_args
 from pikaraoke.lib.browser import Browser
+from pikaraoke.lib.cec_controller import CecController
 from pikaraoke.lib.current_app import get_karaoke_instance
 from pikaraoke.lib.ffmpeg import is_ffmpeg_installed
 from pikaraoke.lib.file_resolver import delete_tmp_dir
@@ -160,15 +161,66 @@ def inject_path_config() -> dict[str, str]:
     }
 
 
+THEME_PRESETS = {
+    "midnight": {
+        "primary": "#8b5cf6",
+        "secondary": "#f59e0b",
+        "background": "#0b0d14",
+        "surface": "rgba(22, 25, 37, 0.90)",
+        "surface_2": "rgba(31, 35, 50, 0.84)",
+        "navbar": "rgba(17, 19, 29, 0.92)",
+    },
+    "ocean": {
+        "primary": "#3b82f6",
+        "secondary": "#22d3ee",
+        "background": "#06111f",
+        "surface": "rgba(14, 30, 49, 0.91)",
+        "surface_2": "rgba(20, 42, 66, 0.85)",
+        "navbar": "rgba(8, 24, 41, 0.93)",
+    },
+    "aurora": {
+        "primary": "#10b981",
+        "secondary": "#a78bfa",
+        "background": "#06120f",
+        "surface": "rgba(13, 35, 29, 0.91)",
+        "surface_2": "rgba(20, 48, 39, 0.85)",
+        "navbar": "rgba(8, 27, 23, 0.93)",
+    },
+    "sunset": {
+        "primary": "#f97360",
+        "secondary": "#fbbf24",
+        "background": "#160a10",
+        "surface": "rgba(48, 20, 29, 0.91)",
+        "surface_2": "rgba(64, 27, 38, 0.85)",
+        "navbar": "rgba(38, 14, 23, 0.93)",
+    },
+    "graphite": {
+        "primary": "#94a3b8",
+        "secondary": "#e2e8f0",
+        "background": "#090b0f",
+        "surface": "rgba(25, 29, 36, 0.92)",
+        "surface_2": "rgba(35, 40, 49, 0.86)",
+        "navbar": "rgba(18, 21, 27, 0.94)",
+    },
+}
+
+
 @app.context_processor
 def inject_theme_config() -> dict[str, str]:
-    """Expose KaraoPi theme color preferences to every template."""
+    """Expose the selected curated interface theme to every template."""
     k = get_karaoke_instance()
+    theme_name = k.preferences.get_or_default("interface_theme")
+    if theme_name not in THEME_PRESETS:
+        theme_name = "midnight"
+    theme = THEME_PRESETS[theme_name]
     return {
-        "theme_primary_color": k.preferences.get_or_default("theme_primary_color"),
-        "theme_secondary_color": k.preferences.get_or_default("theme_secondary_color"),
-        "theme_background_color": k.preferences.get_or_default("theme_background_color"),
-        "theme_navbar_color": k.preferences.get_or_default("theme_navbar_color"),
+        "interface_theme": theme_name,
+        "theme_primary_color": theme["primary"],
+        "theme_secondary_color": theme["secondary"],
+        "theme_background_color": theme["background"],
+        "theme_surface_color": theme["surface"],
+        "theme_surface_2_color": theme["surface_2"],
+        "theme_navbar_color": theme["navbar"],
     }
 
 
@@ -352,6 +404,29 @@ def main() -> None:
     else:
         browser = None
 
+    def handle_cec_action(action: str) -> None:
+        """Apply a TV remote media key through the existing playback pipeline."""
+        with app.app_context():
+            controller = k.playback_controller
+            if action == "play" and controller.is_playing and controller.is_paused:
+                broadcast_event("play")
+                controller.pause()
+            elif action == "pause" and controller.is_playing and not controller.is_paused:
+                broadcast_event("pause")
+                controller.pause()
+            elif action == "play_pause" and controller.is_playing:
+                broadcast_event("play" if controller.is_paused else "pause")
+                controller.pause()
+            elif action in {"stop", "next"}:
+                broadcast_event("skip", "cec command")
+                controller.skip()
+            elif action == "previous" and controller.is_playing:
+                broadcast_event("restart")
+                k.restart()
+
+    cec_controller = CecController(handle_cec_action)
+    cec_controller.start()
+
     if args.enable_swagger:
         logging.info(f"Swagger API docs enabled at {k.url}/apidocs")
 
@@ -364,6 +439,8 @@ def main() -> None:
 
     if keep_awake is not None:
         keep_awake.stop()
+
+    cec_controller.stop()
 
     delete_tmp_dir()
     sys.exit()

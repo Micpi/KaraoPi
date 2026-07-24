@@ -50,7 +50,8 @@ class PreferenceManager:
         "enable_title_tidy": False,
         "metadata_provider": "itunes",
         "itunes_search_country": "US",
-        # KaraoPi customization: branding, theme colors, and QR code appearance.
+        # KaraoPi customization: curated interface theme, branding, and QR code appearance.
+        "interface_theme": "midnight",
         "custom_logo_path": "",
         "theme_primary_color": "#7b3fe4",
         "theme_secondary_color": "#ffb020",

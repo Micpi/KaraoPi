@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-theme="dark">
+<html data-theme="dark" data-interface-theme="{{ interface_theme }}">
 
 <head>
   {% if title %}
@@ -29,10 +29,14 @@
   <link rel="stylesheet" href="{{  url_for('static', filename='fontello/css/fontello.css') }}?v=2">
 
   <style>
-    /* KaraoPi theme customization (from Settings > Theme colors) */
+    /* KaraoPi curated interface theme. */
     :root {
       --karaopi-primary: {{ theme_primary_color }};
       --karaopi-secondary: {{ theme_secondary_color }};
+      --kp-bg: {{ theme_background_color }};
+      --kp-surface: {{ theme_surface_color }};
+      --kp-surface-2: {{ theme_surface_2_color }};
+      --kp-navbar: {{ theme_navbar_color }};
     }
     .button.is-primary:not(.is-inverted):not(.is-outlined),
     .tag.is-primary,
@@ -55,16 +59,7 @@
     .button.is-warning:not(.is-inverted):not(.is-outlined) {
       color: var(--karaopi-secondary) !important;
     }
-    {% if theme_background_color %}
-    html, body {
-      background-color: {{ theme_background_color }} !important;
-    }
-    {% endif %}
-    {% if theme_navbar_color %}
-    .navbar {
-      background-color: {{ theme_navbar_color }} !important;
-    }
-    {% endif %}
+    .navbar { background-color: var(--kp-navbar) !important; }
   </style>
 
   <script>

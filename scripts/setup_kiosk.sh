@@ -98,6 +98,15 @@ if ! command -v yad >/dev/null 2>&1; then
   sudo apt-get install -y yad || echo "Warning: could not install YAD. Updates will continue without the fullscreen progress display."
 fi
 
+# libCEC lets the TV remote control KaraoPi over HDMI (play/pause, stop,
+# next and previous). KaraoPi remains fully functional if installation fails.
+if ! command -v cec-client >/dev/null 2>&1; then
+  echo
+  echo "*** Installing HDMI-CEC remote control support ***"
+  sudo apt-get update -y || true
+  sudo apt-get install -y cec-utils || echo "Warning: could not install cec-utils. HDMI-CEC controls will remain disabled."
+fi
+
 # 4. Create the launcher script that starts KaraoPi and restarts it if it crashes.
 echo
 echo "*** Creating launcher script: $LAUNCHER_PATH ***"

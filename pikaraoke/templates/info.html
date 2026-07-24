@@ -89,7 +89,12 @@
 					"val": val
 				})
 				.done(function(data) {
-					if (data[0]) showNotification(data[1], "is-success");
+					if (data[0]) {
+						showNotification(data[1], "is-success");
+						if (pref === "interface_theme") {
+							window.setTimeout(function() { location.reload(); }, 180);
+						}
+					}
 					else showNotification(data[1], "is-danger")
 				})
 				.fail(function(xhr) {
@@ -948,41 +953,29 @@
 
 		<div class="card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
-				{# MSG: Label for the theme color customization section #}
-				<h3 class="title mb-0">{% trans %}Theme colors{% endtrans %}</h3>
+				<h3 class="title mb-0">{% trans %}Interface theme{% endtrans %}</h3>
 			</header>
 			<div class="card-content collapsible-content">
 				<div class="content">
-					<div class="field">
-						{# MSG: Label for the primary theme color picker. #}
-						<label class="label">{% trans %}Primary color{% endtrans %}</label>
-						<input id="pref-theme-primary" class="user-preference-input" type="color" data-pref="theme_primary_color" data-start-value="{{ theme_primary_color }}" value="{{ theme_primary_color }}" />
+					<div class="theme-selector">
+						<div class="select is-fullwidth">
+							<select id="pref-interface-theme" class="user-preference-input" data-pref="interface_theme" data-start-value="{{ interface_theme }}">
+								<option value="midnight" {% if interface_theme == "midnight" %}selected{% endif %}>{% trans %}Midnight violet{% endtrans %}</option>
+								<option value="ocean" {% if interface_theme == "ocean" %}selected{% endif %}>{% trans %}Deep ocean{% endtrans %}</option>
+								<option value="aurora" {% if interface_theme == "aurora" %}selected{% endif %}>{% trans %}Northern lights{% endtrans %}</option>
+								<option value="sunset" {% if interface_theme == "sunset" %}selected{% endif %}>{% trans %}Modern sunset{% endtrans %}</option>
+								<option value="graphite" {% if interface_theme == "graphite" %}selected{% endif %}>{% trans %}Graphite minimal{% endtrans %}</option>
+							</select>
+						</div>
+						<div class="theme-swatches" aria-hidden="true">
+							<span class="theme-swatch theme-swatch-midnight"></span>
+							<span class="theme-swatch theme-swatch-ocean"></span>
+							<span class="theme-swatch theme-swatch-aurora"></span>
+							<span class="theme-swatch theme-swatch-sunset"></span>
+							<span class="theme-swatch theme-swatch-graphite"></span>
+						</div>
 					</div>
-					<div class="field">
-						{# MSG: Label for the secondary/accent theme color picker. #}
-						<label class="label">{% trans %}Accent color{% endtrans %}</label>
-						<input id="pref-theme-secondary" class="user-preference-input" type="color" data-pref="theme_secondary_color" data-start-value="{{ theme_secondary_color }}" value="{{ theme_secondary_color }}" />
-					</div>
-					<div class="field">
-						{# MSG: Label for the page background color picker. #}
-						<label class="label">{% trans %}Background color{% endtrans %}</label>
-						<input id="pref-theme-background" class="user-preference-input" type="color" data-pref="theme_background_color" data-start-value="{{ theme_background_color }}" value="{{ theme_background_color or '#181a1b' }}" />
-						<a class="reset-color-pref is-size-7" data-pref="theme_background_color" href="#">{% trans %}Reset{% endtrans %}</a>
-					</div>
-					<div class="field">
-						{# MSG: Label for the navbar color picker. #}
-						<label class="label">{% trans %}Navbar color{% endtrans %}</label>
-						<input id="pref-theme-navbar" class="user-preference-input" type="color" data-pref="theme_navbar_color" data-start-value="{{ theme_navbar_color }}" value="{{ theme_navbar_color or '#181a1b' }}" />
-						<a class="reset-color-pref is-size-7" data-pref="theme_navbar_color" href="#">{% trans %}Reset{% endtrans %}</a>
-					</div>
-					<p class="is-size-7 has-text-grey">
-						{# MSG: Help text explaining that theme color changes need a page refresh. #}
-						{% trans %}Reload the page to see color changes take full effect.{% endtrans %}
-					</p>
-					<a id="reload-splash-link" class="button is-small is-primary is-inverted" href="{{ url_for('admin.reload_splash') }}">
-						{# MSG: Button to force the splash screen to reload so appearance changes apply immediately. #}
-						{% trans %}Reload splash screen now{% endtrans %}
-					</a>
+					<p class="is-size-7 has-text-grey">{% trans %}The selected theme is applied to the complete web interface after saving.{% endtrans %}</p>
 				</div>
 			</div>
 		</div>

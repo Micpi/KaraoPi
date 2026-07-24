@@ -2113,6 +2113,297 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 
+/* Curated themes: compact visual preview in Appearance settings. */
+.theme-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--kp-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.theme-swatch {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, .16);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 5px rgba(8, 10, 15, .3);
+}
+
+.theme-swatch-midnight { background: linear-gradient(135deg, #8b5cf6 50%, #f59e0b 50%); }
+.theme-swatch-ocean { background: linear-gradient(135deg, #3b82f6 50%, #22d3ee 50%); }
+.theme-swatch-aurora { background: linear-gradient(135deg, #10b981 50%, #a78bfa 50%); }
+.theme-swatch-sunset { background: linear-gradient(135deg, #f97360 50%, #fbbf24 50%); }
+.theme-swatch-graphite { background: linear-gradient(135deg, #64748b 50%, #e2e8f0 50%); }
+
+/*
+ * Definitive responsive navigation.
+ * Bulma switches its desktop navbar at 1024px, so KaraoPi uses the same
+ * breakpoint and never leaves a visible navbar shell without controls.
+ */
+@media screen and (max-width: 1023px) {
+  body > .page-menu-toggle {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: calc(env(safe-area-inset-right) + 10px);
+    z-index: 2147483647;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--kp-text);
+    box-shadow: none;
+    touch-action: manipulation;
+  }
+
+  .app-shell > .navbar {
+    position: fixed;
+    inset: 0 0 auto auto;
+    z-index: 2147483645;
+    display: block;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent !important;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .app-shell > .navbar > .navbar-brand {
+    display: none !important;
+  }
+
+  .app-shell .navbar-menu {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top) + 68px) !important;
+    right: calc(env(safe-area-inset-right) + 10px) !important;
+    left: auto !important;
+    z-index: 2147483646;
+    display: none !important;
+    width: min(610px, calc(100vw - 20px));
+    max-height: calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 80px);
+    padding: 10px !important;
+    overflow: auto;
+    border: 1px solid var(--kp-border) !important;
+    border-radius: 19px !important;
+    background: color-mix(in srgb, var(--kp-navbar) 96%, transparent) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .52) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+  }
+
+  .app-shell .navbar-menu.is-active {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    animation: navbar-panel-in .18s ease-out both;
+  }
+
+  .navbar-main-links {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .navbar-main-links .navbar-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 9px;
+    min-width: 0;
+    min-height: 50px;
+    padding: 9px 11px !important;
+    border: 1px solid rgba(255, 255, 255, .055);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, .028);
+    font-size: .76rem;
+  }
+
+  .navbar-main-links .navbar-item i {
+    width: 22px;
+    flex: 0 0 22px;
+    margin: 0;
+    text-align: center;
+  }
+
+  .app-shell .navbar-menu .navbar-end {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 0 0;
+    border: 0;
+    border-top: 1px solid var(--kp-border);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .navbar-system-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .navbar-settings {
+    width: 50px !important;
+    min-width: 50px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .app-shell .navbar-menu {
+    right: max(8px, env(safe-area-inset-right)) !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    width: auto;
+  }
+
+  .navbar-main-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-shell .navbar-menu .navbar-end {
+    grid-template-columns: 1fr;
+  }
+
+  .navbar-settings {
+    width: 100% !important;
+  }
+
+  .theme-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-swatches {
+    justify-self: start;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  body > .page-menu-toggle {
+    display: none !important;
+  }
+
+  .app-shell > .navbar {
+    display: flex;
+    background: var(--kp-navbar) !important;
+  }
+
+  .app-shell .navbar-menu {
+    display: flex;
+  }
+}
+
+/* Info categories: a themed segmented strip, scrollable on narrow screens. */
+.info-page .info-quick-nav {
+  position: sticky;
+  top: 8px;
+  z-index: 35;
+  display: flex;
+  width: 100%;
+  margin: 0 0 24px;
+  padding: 5px;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--kp-border);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--kp-navbar) 92%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.info-page .info-quick-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.info-page .info-quick-nav a {
+  display: inline-flex;
+  flex: 1 0 max-content;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 112px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 13px;
+  gap: 7px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--kp-muted) !important;
+  font-size: .74rem;
+  font-weight: 680;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.info-page .info-quick-nav a:hover,
+.info-page .info-quick-nav a:focus,
+.info-page .info-quick-nav a[aria-current="location"] {
+  border: 0;
+  background: color-mix(in srgb, var(--karaopi-primary) 20%, transparent);
+  color: var(--kp-text) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--karaopi-primary) 28%, transparent);
+  transform: none;
+}
+
+.info-page .info-quick-nav a i {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--karaopi-secondary);
+}
+
+@media screen and (max-width: 600px) {
+  .info-page .info-quick-nav {
+    top: calc(env(safe-area-inset-top) + 64px);
+    width: calc(100% + 12px);
+    margin-left: -6px;
+    margin-bottom: 20px;
+    padding: 4px;
+    border-radius: 13px;
+  }
+
+  .info-page .info-quick-nav a {
+    flex: 0 0 auto;
+    min-width: 104px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: .7rem;
+  }
+}
+
 @media screen and (max-width: 600px) {
   .score-session {
     padding: 0.65rem;

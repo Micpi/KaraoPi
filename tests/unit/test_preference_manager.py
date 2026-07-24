@@ -288,8 +288,9 @@ def test_preference_manager_defaults_exist():
             "mic_settings",
         "enable_title_tidy",
         "metadata_provider",
-        "itunes_search_country",
-        # KaraoPi customization: branding, theme colors, QR code appearance, screensaver style.
+            "itunes_search_country",
+            "interface_theme",
+            # KaraoPi customization: branding, theme colors, QR code appearance, screensaver style.
         "custom_logo_path",
         "theme_primary_color",
         "theme_secondary_color",
