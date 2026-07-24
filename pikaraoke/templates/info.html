@@ -150,11 +150,16 @@
 
 			$("#update-app-link").click(function (e) {
 				e.preventDefault();
+				var $button = $(this);
+				if ($button.hasClass("is-loading")) {
+					return;
+				}
 				if (
 					window.confirm(
 						{{ _('Are you sure you want to update KaraoPi right now? Playback and downloads will stop briefly while the system installs the new release.') | tojson }}
 					)
 				) {
+					$button.addClass("is-loading").attr("aria-disabled", "true");
 					location.href = this.href;
 				}
 			});
@@ -882,9 +887,9 @@
 						{% endif %}
 					</p>
 					{% if release_update and release_update.update_available %}
-						<a id="update-app-link" class="button is-primary is-inverted" href="{{ url_for('admin.update_app') }}"
-							>{% trans %}Update KaraoPi from GitHub release{% endtrans %}</a_
-						>
+						<a id="update-app-link" class="button is-primary is-inverted" href="{{ url_for('admin.update_app') }}">
+							{% trans %}Update KaraoPi from GitHub release{% endtrans %}
+						</a>
 						<p class="mt-3 is-size-7 has-text-warning">
 							{% trans latest_version=release_update.latest_tag -%}
 								KaraoPi will download release {{ latest_version }}, install any updated Python dependencies, and restart automatically.

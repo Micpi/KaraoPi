@@ -316,11 +316,6 @@
             <small>{% trans %}Karaoke system{% endtrans %}</small>
           </span>
         </a>
-        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-        </a>
         <a class="navbar-mobile-info" href="{{ url_for('info.info') }}" aria-label="{{ _('Information') }}">
           <i class="icon icon-info-circled-1"></i>
         </a>
@@ -369,6 +364,15 @@
                 <path d="M19.1 15a8 8 0 1 1-.7-7.7L20 9"></path>
               </svg>
               <span>{% trans %}Reboot System{% endtrans %}</span>
+            </a>
+            <a id="navbar-reload-splash" class="navbar-item navbar-reload-splash no-spa" href="{{ url_for('admin.reload_splash') }}" title="{{ _('Reload splash screen now') }}">
+              <svg class="reload-splash-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="15" rx="2"></rect>
+                <path d="M9 22h6M12 19v3"></path>
+                <path d="M15.5 9.5a4 4 0 1 0 .4 4.9"></path>
+                <path d="M16 7v3h-3"></path>
+              </svg>
+              <span>{% trans %}Reload splash{% endtrans %}</span>
             </a>
           </div>
           <a id="current-user" class="navbar-item is-hidden" href="#">
