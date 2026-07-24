@@ -890,6 +890,61 @@ input[type="range"] {
   transform: rotate(35deg);
 }
 
+.navbar-system-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 100px;
+}
+
+.connected-interfaces {
+  position: relative;
+  width: 48px;
+  min-width: 48px;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid var(--kp-border);
+  border-radius: 14px;
+  color: var(--kp-muted) !important;
+  cursor: default;
+}
+
+.interfaces-icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.connected-interface-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.connected-interface-count {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 2px solid #11141d;
+  border-radius: 10px;
+  background: var(--karaopi-primary);
+  color: white;
+  font-size: .62rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
 .navbar-settings span {
   position: absolute;
   width: 1px;
@@ -1091,6 +1146,50 @@ input[type="range"] {
     width: auto;
     height: auto;
     clip: auto;
+  }
+
+  .navbar-system-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .navbar-system-actions .connected-interfaces,
+  .navbar-system-actions .navbar-restart {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    padding: 8px 10px !important;
+    border: 1px solid rgba(255, 255, 255, .055);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .028);
+  }
+
+  .navbar-system-actions .interfaces-icon,
+  .navbar-system-actions .reboot-icon {
+    grid-column: 1;
+    justify-self: center;
+  }
+
+  .navbar-system-actions .connected-interface-label,
+  .navbar-system-actions .navbar-restart span {
+    position: static;
+    grid-column: 2;
+    justify-self: start;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    line-height: 1.1;
+  }
+
+  .navbar-system-actions .connected-interface-count {
+    top: 4px;
+    right: 5px;
   }
 }
 
@@ -1628,6 +1727,75 @@ input[type="range"] {
   }
 
   .app-shell .navbar-burger.is-active span:nth-child(3) {
+    top: 19px;
+    transform: rotate(-45deg);
+  }
+}
+
+/* The phone menu trigger lives in the title row, avoiding iOS viewport offsets. */
+.page-menu-toggle {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .app-shell > .navbar {
+    position: static;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .app-shell > .navbar > .navbar-brand {
+    display: none;
+  }
+
+  .app-surface > .page-header {
+    display: flex;
+    min-height: 40px;
+    padding-right: 0;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .app-surface > .page-header > h1,
+  .app-surface > .page-header > :first-child {
+    min-width: 0;
+    margin-right: auto;
+  }
+
+  .app-surface .page-menu-toggle {
+    position: relative;
+    display: block;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    flex: 0 0 40px;
+    margin: 0 0 0 auto;
+    align-self: center;
+    color: white;
+  }
+
+  .app-surface .page-menu-toggle span {
+    left: 10px;
+    width: 20px;
+  }
+
+  .app-surface .page-menu-toggle span:nth-child(1) { top: 13px; }
+  .app-surface .page-menu-toggle span:nth-child(2) { top: 19px; }
+  .app-surface .page-menu-toggle span:nth-child(3) { top: 25px; }
+
+  .app-surface .page-menu-toggle.is-active span:nth-child(1) {
+    top: 19px;
+    transform: rotate(45deg);
+  }
+
+  .app-surface .page-menu-toggle.is-active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .app-surface .page-menu-toggle.is-active span:nth-child(3) {
     top: 19px;
     transform: rotate(-45deg);
   }

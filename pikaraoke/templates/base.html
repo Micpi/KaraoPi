@@ -153,6 +153,14 @@
       window.socket.on('disconnect', function() {
           console.log('Socket disconnected');
       });
+      window.socket.on('connected_interfaces', function(data) {
+          var count = data && Number.isFinite(Number(data.count)) ? Number(data.count) : 0;
+          $("#connected-interfaces-count").text(count);
+          $("#connected-interfaces").attr(
+            "aria-label",
+            count + " " + {{ _('interfaces connected to KaraoPi') | tojson }}
+          );
+      });
       window.socket.on('score_update', function() {
           var basePath = window.pikaraokeConfig.basePath || "";
           if (window.location.pathname === basePath + "/scores") {
@@ -346,13 +354,23 @@
         </a>
         </div>
         <div class="navbar-end">
-          <a id="navbar-restart" class="navbar-item navbar-restart" href="{{ url_for('admin.reboot') }}" title="{{ _('Reboot System') }}">
-            <svg class="reboot-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 7v5h-5"></path>
-              <path d="M19.1 15a8 8 0 1 1-.7-7.7L20 9"></path>
-            </svg>
-            <span>{% trans %}Reboot System{% endtrans %}</span>
-          </a>
+          <div class="navbar-system-actions">
+            <div id="connected-interfaces" class="navbar-item connected-interfaces" title="{{ _('Interfaces connected') }}">
+              <svg class="interfaces-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="12" rx="2"></rect>
+                <path d="M8 21h8M12 17v4"></path>
+              </svg>
+              <span class="connected-interface-label">{% trans %}Connected{% endtrans %}</span>
+              <strong id="connected-interfaces-count" class="connected-interface-count">0</strong>
+            </div>
+            <a id="navbar-restart" class="navbar-item navbar-restart" href="{{ url_for('admin.reboot') }}" title="{{ _('Reboot System') }}">
+              <svg class="reboot-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 7v5h-5"></path>
+                <path d="M19.1 15a8 8 0 1 1-.7-7.7L20 9"></path>
+              </svg>
+              <span>{% trans %}Reboot System{% endtrans %}</span>
+            </a>
+          </div>
           <a id="current-user" class="navbar-item is-hidden" href="#">
             <i class="icon  icon-mic-1" title="Current user"></i>
             <span></span>
@@ -383,6 +401,11 @@
     <main class="box app-surface">
       <header class="title page-header">
         {% block header %}{% endblock %}
+        <a role="button" class="navbar-burger page-menu-toggle" aria-label="{{ _('Menu') }}" aria-expanded="false">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
       </header>
       <div class="content">
         {% block content %}

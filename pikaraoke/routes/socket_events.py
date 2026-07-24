@@ -10,6 +10,7 @@ from pikaraoke.lib.karaopi_release import mark_update_display_complete
 
 # Track connected splash screen clients and the elected master
 splash_connections = set()
+connected_interfaces = set()
 master_splash_id = None
 
 
@@ -110,6 +111,8 @@ def setup_socket_events(socketio):
         """Handle Socket.IO client disconnection and manage splash role handover."""
         global master_splash_id
         sid = request.sid
+        connected_interfaces.discard(sid)
+        socketio.emit("connected_interfaces", {"count": len(connected_interfaces)})
         if sid in splash_connections:
             splash_connections.remove(sid)
             logging.info(f"Splash screen disconnected: {sid}")
@@ -194,3 +197,8 @@ def setup_socket_events(socketio):
 
         logging.info(f"Mic update: {label} enabled={enabled} volume={volume}")
         socketio.emit("mic_update", data)
+    @socketio.on("connect")
+    def handle_connect() -> None:
+        """Track every web interface connected to KaraoPi."""
+        connected_interfaces.add(request.sid)
+        socketio.emit("connected_interfaces", {"count": len(connected_interfaces)})
