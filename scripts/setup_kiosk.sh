@@ -89,13 +89,13 @@ if ! command -v unclutter >/dev/null 2>&1; then
   sudo apt-get install -y unclutter || echo "Warning: could not install unclutter automatically."
 fi
 
-# YAD provides the fullscreen update progress window. It runs independently
-# from Chromium, so progress remains visible while KaraoPi is replaced.
-if ! command -v yad >/dev/null 2>&1; then
+# xterm provides the fullscreen console update progress, while YAD remains a
+# fallback. Both run independently from Chromium during replacement.
+if ! command -v xterm >/dev/null 2>&1 || ! command -v yad >/dev/null 2>&1; then
   echo
-  echo "*** Installing YAD (fullscreen KaraoPi update display) ***"
+  echo "*** Installing fullscreen KaraoPi update display ***"
   sudo apt-get update -y || true
-  sudo apt-get install -y yad || echo "Warning: could not install YAD. Updates will continue without the fullscreen progress display."
+  sudo apt-get install -y xterm yad || echo "Warning: could not install xterm/YAD. Updates will continue without the fullscreen progress display."
 fi
 
 # libCEC lets the TV remote control KaraoPi over HDMI (play/pause, stop,
