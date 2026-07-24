@@ -964,6 +964,21 @@ msgstr "Chromium"
 msgid "Restart KaraoPi after changing the kiosk browser. If the selected browser is unavailable, KaraoPi automatically uses the other one."
 msgstr "Redémarrez KaraoPi après avoir changé le navigateur kiosk. Si le navigateur sélectionné est indisponible, KaraoPi utilise automatiquement l’autre."
 
+msgid "Connected to KaraoPi"
+msgstr "Connecté à KaraoPi"
+
+msgid "Connection to KaraoPi lost"
+msgstr "Connexion à KaraoPi perdue"
+
+msgid "Disconnected"
+msgstr "Déconnecté"
+
+msgid "KaraoPi is starting"
+msgstr "KaraoPi démarre"
+
+msgid "Preparing the karaoke experience…"
+msgstr "Préparation de l’expérience karaoké…"
+
 msgid "The selected theme is applied to the complete web interface after saving."
 msgstr "Le thème sélectionné est appliqué à toute l'interface web après l'enregistrement."
 

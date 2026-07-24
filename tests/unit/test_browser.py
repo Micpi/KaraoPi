@@ -66,4 +66,31 @@ def test_firefox_profile_allows_unattended_autoplay(tmp_path):
 
     preferences = (tmp_path / "user.js").read_text(encoding="utf-8")
     assert 'user_pref("media.autoplay.default", 0);' in preferences
+    assert 'user_pref("media.autoplay.block-event.enabled", false);' in preferences
+    assert 'user_pref("media.mediasource.enabled", true);' in preferences
+    assert 'user_pref("media.mediasource.mp4.enabled", true);' in preferences
+    assert 'user_pref("media.hardware-video-decoding.enabled", true);' in preferences
     assert 'user_pref("browser.sessionstore.resume_from_crash", false);' in preferences
+
+
+def test_firefox_on_pi_switches_the_active_stream_manager_to_hls():
+    karaoke = MagicMock()
+    karaoke.url = "http://127.0.0.1:5555"
+    karaoke.is_raspberry_pi = True
+    karaoke.streaming_format = "mp4"
+
+    Browser(karaoke)._enable_firefox_streaming_compatibility()
+
+    assert karaoke.streaming_format == "hls"
+    assert karaoke.playback_controller.stream_manager.streaming_format == "hls"
+
+
+def test_firefox_compatibility_does_not_change_desktop_streaming():
+    karaoke = MagicMock()
+    karaoke.url = "http://127.0.0.1:5555"
+    karaoke.is_raspberry_pi = False
+    karaoke.streaming_format = "mp4"
+
+    Browser(karaoke)._enable_firefox_streaming_compatibility()
+
+    assert karaoke.streaming_format == "mp4"

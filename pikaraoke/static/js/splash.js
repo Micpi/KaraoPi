@@ -43,6 +43,13 @@ let splashReadyEmitted = false;
 let expectedPlaybackDuration = 0;
 const prematureEndRecoveryKey = "pikaraokePrematureEndRecoveryCount";
 
+const releaseBootDisplay = () => {
+  if (splashReadyEmitted || !isMaster || !socket.connected) return;
+  splashReadyEmitted = true;
+  socket.emit("splash_ready");
+  document.getElementById("splash-boot-cover")?.classList.add("is-ready");
+};
+
 const reportSplashReady = () => {
   if (splashReadyEmitted || !splashDomReady || !autoplayConfirmed || !isMaster) return;
   let mediaReady = false;
@@ -59,8 +66,7 @@ const reportSplashReady = () => {
     mediaReady = videoReady && musicReady;
   }
   if (mediaReady && socket.connected) {
-    splashReadyEmitted = true;
-    socket.emit("splash_ready");
+    releaseBootDisplay();
   }
 };
 
@@ -1042,8 +1048,7 @@ $(function () {
   setTimeout(() => {
     if (!splashReadyEmitted && isMaster && socket.connected) {
       console.warn("Splash media readiness timed out; releasing boot display");
-      splashReadyEmitted = true;
-      socket.emit("splash_ready");
+      releaseBootDisplay();
     }
   }, 30000);
 });

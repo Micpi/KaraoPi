@@ -202,6 +202,8 @@ Type=Application
 Name=KaraoPi
 Exec=$LAUNCHER_PATH
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Phase=Initialization
+X-KDE-autostart-phase=0
 AUTOSTART_EOF
 
 # 6. Autostart unclutter too, if installed.

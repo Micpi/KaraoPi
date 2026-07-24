@@ -154,6 +154,12 @@ class Browser:
         preferences = (
             'user_pref("media.autoplay.default", 0);\n'
             'user_pref("media.autoplay.blocking_policy", 0);\n'
+            'user_pref("media.autoplay.block-event.enabled", false);\n'
+            'user_pref("media.mediasource.enabled", true);\n'
+            'user_pref("media.mediasource.mp4.enabled", true);\n'
+            'user_pref("media.mp4.enabled", true);\n'
+            'user_pref("media.ffmpeg.enabled", true);\n'
+            'user_pref("media.hardware-video-decoding.enabled", true);\n'
             'user_pref("browser.sessionstore.resume_from_crash", false);\n'
             'user_pref("browser.shell.checkDefaultBrowser", false);\n'
             'user_pref("browser.aboutwelcome.enabled", false);\n'
@@ -165,6 +171,19 @@ class Browser:
         with open(temporary, "w", encoding="utf-8") as output:
             output.write(preferences)
         os.replace(temporary, path)
+
+    def _enable_firefox_streaming_compatibility(self) -> None:
+        """Switch a Pi kiosk discovered as Firefox to segmented HLS playback."""
+        if not self.karaoke.is_raspberry_pi or self.karaoke.streaming_format != "mp4":
+            return
+        self.karaoke.streaming_format = "hls"
+        playback_controller = getattr(self.karaoke, "playback_controller", None)
+        stream_manager = getattr(playback_controller, "stream_manager", None)
+        if stream_manager is not None:
+            stream_manager.streaming_format = "hls"
+        logging.info(
+            "Firefox detected for the Raspberry Pi kiosk; enabled HLS media compatibility"
+        )
 
     def launch_splash_screen(self) -> subprocess.Popen | None:
         """Launch the browser with the splash screen in kiosk mode.
@@ -251,6 +270,7 @@ class Browser:
             launch_url = self._get_launch_url()
             launch_environment = os.environ.copy()
             if browser_kind == "firefox":
+                self._enable_firefox_streaming_compatibility()
                 self._prepare_firefox_profile()
                 cmd = [
                     browser_executable,

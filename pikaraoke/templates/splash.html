@@ -52,6 +52,14 @@
 </style>
 <script src="{{ url_for('static', filename='js/splash.js', v=asset_version) }}"></script>
 {% endblock %} {% block body %}
+<div id="splash-boot-cover" aria-live="polite" aria-label="{{ _('KaraoPi is starting') }}">
+  <div class="splash-boot-card">
+    <img src="{{ url_for('static', filename='images/karaopi-logo.svg') }}" alt="" />
+    <strong>KaraoPi</strong>
+    <span>{% trans %}Preparing the karaoke experience…{% endtrans %}</span>
+    <i aria-hidden="true"></i>
+  </div>
+</div>
 <div id="top-container" class="overlay">
 <i class="icon icon-mic-1 is-invisible" style="position: absolute" title="Current singer"></i>
   <div
@@ -353,6 +361,49 @@
     height: var(--visual-viewport-height, 100dvh);
     align-items: center;
     justify-content: center;
+  }
+  #splash-boot-cover {
+    position: fixed;
+    z-index: 2147483646;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(139, 92, 246, .18), transparent 32rem),
+      #07090f;
+    opacity: 1;
+    transition: opacity .45s ease, visibility .45s ease;
+  }
+  #splash-boot-cover.is-ready {
+    visibility: hidden;
+    opacity: 0;
+  }
+  .splash-boot-card {
+    display: grid;
+    width: min(420px, calc(100vw - 48px));
+    justify-items: center;
+    gap: 12px;
+    padding: 38px 32px;
+    border: 1px solid rgba(255, 255, 255, .11);
+    border-radius: 26px;
+    background: rgba(18, 21, 32, .92);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .48);
+  }
+  .splash-boot-card img { width: 92px; height: 92px; }
+  .splash-boot-card strong { color: white; font-size: 2rem; letter-spacing: -.04em; }
+  .splash-boot-card span { color: #aeb4c5; font-size: 1rem; }
+  .splash-boot-card i {
+    width: 42px;
+    height: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #8b5cf6, #22d3ee, #8b5cf6);
+    background-size: 200% 100%;
+    animation: splash-boot-progress 1.2s linear infinite;
+  }
+  @keyframes splash-boot-progress {
+    to { background-position: -200% 0; }
   }
   #menu-background {
     bottom: 0;

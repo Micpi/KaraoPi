@@ -217,6 +217,23 @@ class Karaoke:
         if self.usb_download_path:
             self.download_path = os.path.abspath(os.path.expanduser(self.usb_download_path))
 
+        # Firefox on Raspberry Pi is substantially more reliable with a
+        # segmented MediaSource stream than with a fragmented MP4 file that is
+        # still being written by FFmpeg. Keep the explicit HLS CLI choice and
+        # transparently enable the compatibility path when Firefox drives the
+        # local kiosk. Remote Chromium/Safari clients can consume the same HLS
+        # stream through hls.js/native HLS.
+        if (
+            self.is_raspberry_pi
+            and self.preferences.get_or_default("kiosk_browser") == "firefox"
+            and self.streaming_format == "mp4"
+        ):
+            self.streaming_format = "hls"
+            logging.info(
+                "Firefox kiosk selected on Raspberry Pi; using HLS media streaming "
+                "for stable playback"
+            )
+
         # Log the settings to debug level
         self.log_settings_to_debug()
 
