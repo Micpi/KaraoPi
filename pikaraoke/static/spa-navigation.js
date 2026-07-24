@@ -222,6 +222,21 @@
     function attachNavListeners() {
         $(document).on('click', config.linkSelector, function(e) {
             const href = $(this).attr('href');
+            const $link = $(this);
+
+            // Info category shortcuts are local anchors: scroll within the
+            // current document without fetching or rebuilding the page.
+            if ($link.closest('.info-quick-nav').length && href && href.startsWith('#')) {
+                const target = document.getElementById(href.substring(1));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    window.history.replaceState(window.history.state, '', href);
+                    $('.info-quick-nav a').removeAttr('aria-current');
+                    $link.attr('aria-current', 'location');
+                }
+                return;
+            }
 
             // Only intercept internal links that should use SPA navigation
             if (href && !href.startsWith('http') && !href.startsWith('#') && !shouldExcludeLink(this)) {

@@ -1867,26 +1867,24 @@ input[type="range"] {
   }
 }
 
-/* Floating category palette on Info — compact and consistent on every screen. */
+/* Floating, horizontally scrollable category tabs on Info. */
 .info-page .info-quick-nav {
   position: sticky;
   top: max(8px, env(safe-area-inset-top));
   z-index: 35;
   display: flex;
-  width: min(100%, 760px);
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto 26px;
-  padding: 6px;
-  gap: 3px;
+  margin: 0 0 26px;
+  padding: 3px 1px 8px;
+  gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  border: 1px solid rgba(255, 255, 255, .09);
-  border-radius: 16px;
-  background: rgba(15, 17, 25, .82);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, .24);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  scroll-padding-inline: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scroll-padding-inline: 1px;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1897,19 +1895,24 @@ input[type="range"] {
 }
 
 .info-page .info-quick-nav a {
-  flex: 0 0 132px;
-  width: 132px;
-  min-width: 132px;
-  height: 42px;
-  min-height: 42px;
-  padding: 0 11px;
-  justify-content: flex-start;
-  gap: 7px;
-  border: 0;
-  border-radius: 11px;
-  background: transparent;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 999px;
+  background: rgba(15, 17, 25, .76);
+  box-shadow: 0 7px 18px rgba(0, 0, 0, .16);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--kp-muted) !important;
-  font-size: .73rem;
+  font-size: .75rem;
   font-weight: 650;
   letter-spacing: .005em;
   scroll-snap-align: start;
@@ -1917,14 +1920,17 @@ input[type="range"] {
 }
 
 .info-page .info-quick-nav a:hover,
-.info-page .info-quick-nav a:focus {
-  background: rgba(255, 255, 255, .06);
+.info-page .info-quick-nav a:focus,
+.info-page .info-quick-nav a[aria-current="location"] {
+  border-color: color-mix(in srgb, var(--karaopi-primary) 38%, rgba(255, 255, 255, .09));
+  background: color-mix(in srgb, var(--karaopi-primary) 13%, rgba(15, 17, 25, .84));
   color: white !important;
+  transform: translateY(-1px);
 }
 
 .info-page .info-quick-nav a i {
-  width: 20px;
-  flex: 0 0 20px;
+  width: auto;
+  flex: 0 0 auto;
   margin: 0;
   color: color-mix(in srgb, var(--karaopi-secondary) 75%, white);
   text-align: center;
@@ -1934,18 +1940,18 @@ input[type="range"] {
   .info-page .info-quick-nav {
     width: 100%;
     margin-bottom: 20px;
-    border-radius: 14px;
     mask-image: linear-gradient(to right, transparent 0, black 10px, black calc(100% - 10px), transparent 100%);
     -webkit-mask-image: linear-gradient(to right, transparent 0, black 10px, black calc(100% - 10px), transparent 100%);
   }
 
   .info-page .info-quick-nav a {
-    flex-basis: 124px;
-    width: 124px;
-    min-width: 124px;
-    height: 40px;
-    min-height: 40px;
-    font-size: .7rem;
+    flex-basis: auto;
+    width: auto;
+    min-width: max-content;
+    height: 37px;
+    min-height: 37px;
+    padding: 0 13px;
+    font-size: .72rem;
   }
 }
 
@@ -2031,13 +2037,18 @@ input[type="range"] {
     margin-bottom: 0;
   }
 
-  .app-surface .page-menu-toggle {
-    width: 40px;
-    height: 42px;
-    min-height: 42px;
-    flex: 0 0 40px;
-    margin: 0 -12px -3px auto;
-    align-self: flex-end;
+  .app-shell > .page-menu-toggle {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
     background: transparent;
     border: 0;
     border-radius: 0;
@@ -2047,8 +2058,8 @@ input[type="range"] {
   }
 
   .page-menu-toggle .page-menu-icon {
-    width: 29px;
-    height: 29px;
+    width: 30px;
+    height: 30px;
   }
 
   .app-shell .navbar-menu,
@@ -2057,6 +2068,7 @@ input[type="range"] {
     top: calc(max(8px, env(safe-area-inset-top)) + 72px);
     right: max(8px, env(safe-area-inset-right));
     left: max(8px, env(safe-area-inset-left));
+    z-index: 110;
     width: auto;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 92px - env(safe-area-inset-bottom));
     overflow-y: auto;

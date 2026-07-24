@@ -387,6 +387,20 @@
       </div>
     </nav>
 
+    <a role="button" class="navbar-burger page-menu-toggle" aria-label="{{ _('Menu') }}" aria-expanded="false">
+      <svg class="page-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <g class="menu-icon-open">
+          <path d="M4 7h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 17h16"></path>
+        </g>
+        <g class="menu-icon-close">
+          <path d="M6 6l12 12"></path>
+          <path d="M18 6L6 18"></path>
+        </g>
+      </svg>
+    </a>
+
     {% if get_flashed_messages() %}
     {% for category, message in get_flashed_messages(with_categories=true) %}
     <div id="notification" class="notification base-notification {{category}}">
@@ -405,19 +419,6 @@
     <main class="box app-surface">
       <header class="title page-header">
         {% block header %}{% endblock %}
-        <a role="button" class="navbar-burger page-menu-toggle" aria-label="{{ _('Menu') }}" aria-expanded="false">
-          <svg class="page-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <g class="menu-icon-open">
-              <path d="M4 7h16"></path>
-              <path d="M4 12h16"></path>
-              <path d="M4 17h16"></path>
-            </g>
-            <g class="menu-icon-close">
-              <path d="M6 6l12 12"></path>
-              <path d="M18 6L6 18"></path>
-            </g>
-          </svg>
-        </a>
       </header>
       <div class="content">
         {% block content %}
