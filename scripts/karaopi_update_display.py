@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -123,7 +124,8 @@ def main():
     # Prefer a real terminal: it is more reliable across Raspberry Pi desktop
     # sessions and provides the console-style update screen requested by KaraoPi.
     xterm = shutil.which("xterm")
-    if xterm:
+    yad = shutil.which("yad")
+    if xterm and not yad:
         command = [
             xterm,
             "-geometry",
@@ -148,7 +150,6 @@ def main():
         return subprocess.call(command, env=os.environ.copy())
 
     # GTK fallback for systems where xterm is unavailable.
-    yad = shutil.which("yad")
     if not yad:
         return 0
 
@@ -158,14 +159,16 @@ def main():
         "--center",
         "--width=760",
         "--height=460",
+        "--undecorated",
         "--on-top",
         "--skip-taskbar",
         "--no-buttons",
         "--auto-close",
         "--percentage=0",
-        "--title=KaraoPi Update",
-        "--text=Preparing the update…",
+        "--title=KaraoPi",
+        "--text=<span size='x-large' weight='bold'>KaraoPi</span>\n\nPreparing the system…",
         "--text-align=center",
+        "--text-use-markup",
     ]
     if args.logo and os.path.isfile(args.logo):
         command.extend([f"--image={args.logo}", "--image-on-top"])
@@ -185,7 +188,13 @@ def main():
                 payload = (status.get("progress"), status.get("message"), status.get("state"))
                 if payload != last_payload and process.stdin:
                     message = str(status.get("message") or "Updating KaraoPi").replace("\n", " ")
-                    process.stdin.write(f"#{message}\n{int(status.get('progress', 0))}\n")
+                    display_message = (
+                        "<span size='x-large' weight='bold'>KaraoPi</span>\n\n"
+                        + html.escape(message)
+                    )
+                    process.stdin.write(
+                        f"#{display_message}\n{int(status.get('progress', 0))}\n"
+                    )
                     process.stdin.flush()
                     last_payload = payload
                 if status.get("state") == "complete":

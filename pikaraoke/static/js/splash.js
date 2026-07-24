@@ -35,6 +35,32 @@ let playbackWatchdogTimer = null;
 let stalledPlaybackTimer = null;
 let firstVideoFrameRendered = false;
 let endingPlaybackId = null;
+let mainMediaReady = false;
+let backgroundVideoReady = false;
+let backgroundMusicReady = false;
+let backgroundPlaylistLoaded = false;
+let splashReadyEmitted = false;
+
+const reportSplashReady = () => {
+  if (splashReadyEmitted || !splashDomReady || !autoplayConfirmed || !isMaster) return;
+  let mediaReady = false;
+  if (nowPlaying.now_playing) {
+    mediaReady = mainMediaReady;
+  } else if (nowPlaying.up_next) {
+    mediaReady = true;
+  } else {
+    const videoReady =
+      PikaraokeConfig.disableBgVideo || !hasBgVideo || backgroundVideoReady;
+    const musicReady =
+      PikaraokeConfig.disableBgMusic ||
+      (backgroundPlaylistLoaded && (bg_playlist.length === 0 || backgroundMusicReady));
+    mediaReady = videoReady && musicReady;
+  }
+  if (mediaReady && socket.connected) {
+    splashReadyEmitted = true;
+    socket.emit("splash_ready");
+  }
+};
 
 const scheduleKioskBootReload = () => {
   const url = new URL(window.location.href);
@@ -76,9 +102,11 @@ const clearPlaybackWatchdogs = () => {
 
 const confirmVideoFrame = () => {
   firstVideoFrameRendered = true;
+  mainMediaReady = true;
   clearTimeout(playbackWatchdogTimer);
   clearTimeout(stalledPlaybackTimer);
   sessionStorage.removeItem(splashRecoveryKey);
+  reportSplashReady();
 };
 
 const watchForDecodedFrame = (video, timeout, reason) => {
@@ -695,7 +723,9 @@ const setupBackgroundVideoPlayer = () => {
   const container = $("#bg-video-container");
   container.hide();
   bgVideo.addEventListener("playing", () => {
+    backgroundVideoReady = true;
     if (shouldBackgroundMediaPlay()) container.fadeIn(1000);
+    reportSplashReady();
   });
   bgVideo.addEventListener("error", (event) => {
     console.error("Background video failed:", event);
@@ -709,8 +739,15 @@ const setupBackgroundVideoPlayer = () => {
 const setupBackgroundMusicPlayer = () => {
   $.get(withBasePath("/bg_playlist"), function (data) {
     if (data) bg_playlist = data;
+    backgroundPlaylistLoaded = true;
+    updateBackgroundMediaState(true);
+    reportSplashReady();
   });
   const bgMusic = getBackgroundMusicPlayer();
+  bgMusic.addEventListener("playing", () => {
+    backgroundMusicReady = true;
+    reportSplashReady();
+  });
   bgMusic.addEventListener("ended", async () => {
     bgMusic.setAttribute('src', getNextBgMusicSong());
     await bgMusic.load();
@@ -810,6 +847,7 @@ const setupSocketEvents = () => {
   socket.on('splash_role', (role) => {
     isMaster = (role === "master");
     console.log("Splash role assigned:", role, isMaster ? "(Master active)" : "(Slave active - read-only)");
+    reportSplashReady();
   });
   socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
@@ -967,6 +1005,16 @@ $(function () {
   // Handle browser compatibility
   handleUnsupportedBrowser();
   testAutoplayCapability();
+  reportSplashReady();
+  // A missing/corrupt optional background asset must not leave the diagnostic
+  // boot window permanently above an otherwise usable splash.
+  setTimeout(() => {
+    if (!splashReadyEmitted && isMaster && socket.connected) {
+      console.warn("Splash media readiness timed out; releasing boot display");
+      splashReadyEmitted = true;
+      socket.emit("splash_ready");
+    }
+  }, 30000);
 });
 
 

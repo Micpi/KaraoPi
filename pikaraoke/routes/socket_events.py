@@ -102,9 +102,16 @@ def setup_socket_events(socketio):
         # state to a newly registered splash so it can recover without a
         # manual page reload.
         k = get_karaoke_instance()
+        socketio.emit("now_playing", k.get_now_playing(), room=sid)
+
+    @socketio.on("splash_ready")
+    def splash_ready() -> None:
+        """Close the boot/update display only after media produced a frame."""
+        if request.sid != master_splash_id:
+            return
         app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         mark_update_display_complete(app_root)
-        socketio.emit("now_playing", k.get_now_playing(), room=sid)
+        logging.info("Master splash reported that its media pipeline is ready")
 
     @socketio.on("playback_position")
     def handle_playback_position(data) -> None:

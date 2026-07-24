@@ -249,6 +249,7 @@ class Browser:
         # Launch with Chromium flags if browser found
         if browser_executable:
             launch_url = self._get_launch_url()
+            launch_environment = os.environ.copy()
             if browser_kind == "firefox":
                 self._prepare_firefox_profile()
                 cmd = [
@@ -257,8 +258,14 @@ class Browser:
                     "-profile",
                     self.firefox_profile_dir,
                     "-kiosk",
-                    launch_url,
                 ]
+                if launch_environment.get("WAYLAND_DISPLAY"):
+                    launch_environment["MOZ_ENABLE_WAYLAND"] = "1"
+                detected_resolution = self._get_screen_resolution()
+                if detected_resolution:
+                    width, height = detected_resolution.split(",", 1)
+                    cmd.extend(["--width", width, "--height", height])
+                cmd.append(launch_url)
             else:
                 cmd = [browser_executable]
                 # A dedicated profile prevents Chromium from attaching the
@@ -315,7 +322,9 @@ class Browser:
             logging.info("Launching %s as the KaraoPi kiosk browser", browser_kind)
             logging.debug(f"Browser command: {' '.join(cmd)}")
             try:
-                self.browser_process = subprocess.Popen(cmd, stdout=stdout_dest, stderr=stderr_dest)
+                self.browser_process = subprocess.Popen(
+                    cmd, stdout=stdout_dest, stderr=stderr_dest, env=launch_environment
+                )
                 self._start_watchdog()
             except OSError as e:
                 logging.error(f"Failed to launch browser subprocess: {e}")
