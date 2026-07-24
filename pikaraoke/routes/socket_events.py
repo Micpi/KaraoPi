@@ -1,10 +1,12 @@
 """Socket.IO event handlers for PiKaraoke."""
 
 import logging
+import os
 
 from flask import request
 
 from pikaraoke.lib.current_app import get_karaoke_instance
+from pikaraoke.lib.karaopi_release import mark_update_display_complete
 
 # Track connected splash screen clients and the elected master
 splash_connections = set()
@@ -84,6 +86,8 @@ def setup_socket_events(socketio):
         # state to a newly registered splash so it can recover without a
         # manual page reload.
         k = get_karaoke_instance()
+        app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        mark_update_display_complete(app_root)
         socketio.emit("now_playing", k.get_now_playing(), room=sid)
 
     @socketio.on("playback_position")

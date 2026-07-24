@@ -1,5 +1,6 @@
 """Tests for the Raspberry Pi self-update workflow."""
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -59,3 +60,29 @@ def test_download_archive_uses_github_api_media_type(tmp_path):
     assert (tmp_path / "release.zip").read_bytes() == b"zip-content"
     assert archive == str(tmp_path / "release.zip")
     assert request_get.call_args.kwargs["headers"]["Accept"] == "application/vnd.github+json"
+
+
+def test_update_status_is_written_atomically_and_clamped(tmp_path):
+    karaopi_release.write_update_status(str(tmp_path), 140, "Restarting", state="awaiting_browser")
+
+    status = json.loads(
+        (tmp_path / karaopi_release.UPDATE_STATUS_FILE).read_text(encoding="utf-8")
+    )
+    assert status["progress"] == 100
+    assert status["message"] == "Restarting"
+    assert status["state"] == "awaiting_browser"
+    assert not (tmp_path / f"{karaopi_release.UPDATE_STATUS_FILE}.tmp").exists()
+
+
+def test_browser_ready_completes_pending_update_display(tmp_path):
+    karaopi_release.write_update_status(
+        str(tmp_path), 94, "Starting Chromium", state="awaiting_browser"
+    )
+
+    karaopi_release.mark_update_display_complete(str(tmp_path))
+
+    status = json.loads(
+        (tmp_path / karaopi_release.UPDATE_STATUS_FILE).read_text(encoding="utf-8")
+    )
+    assert status["progress"] == 100
+    assert status["state"] == "complete"

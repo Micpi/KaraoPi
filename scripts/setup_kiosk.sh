@@ -89,6 +89,15 @@ if ! command -v unclutter >/dev/null 2>&1; then
   sudo apt-get install -y unclutter || echo "Warning: could not install unclutter automatically."
 fi
 
+# YAD provides the fullscreen update progress window. It runs independently
+# from Chromium, so progress remains visible while KaraoPi is replaced.
+if ! command -v yad >/dev/null 2>&1; then
+  echo
+  echo "*** Installing YAD (fullscreen KaraoPi update display) ***"
+  sudo apt-get update -y || true
+  sudo apt-get install -y yad || echo "Warning: could not install YAD. Updates will continue without the fullscreen progress display."
+fi
+
 # 4. Create the launcher script that starts KaraoPi and restarts it if it crashes.
 echo
 echo "*** Creating launcher script: $LAUNCHER_PATH ***"

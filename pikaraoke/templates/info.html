@@ -1079,8 +1079,8 @@
 			</div>
 		{% endif %}
 
-		{# MSG: Title of the section on shutting down / turning off the machine running Pikaraoke. #}
-		<h1>{% trans %}Shutdown{% endtrans %}</h1>
+		{# MSG: Title of the section containing application and system maintenance actions. #}
+		<h1>{% trans %}Maintenance{% endtrans %}</h1>
 
 		<div class="card">
 			<div class="card-content">
@@ -1092,15 +1092,15 @@
 						{%- endtrans %}
 					</p>
 
-					<div class="buttons">
+					<div class="maintenance-actions">
 						{# MSG: Text for button which turns off Pikaraoke for everyone using it at your house. #}
-						<a id="quit-link" class="button is-primary" href="{{ url_for('admin.quit') }}">{% trans %}Quit KaraoPi{% endtrans %}</a>
+						<a id="quit-link" class="button is-primary maintenance-action" href="{{ url_for('admin.quit') }}">{% trans %}Quit KaraoPi{% endtrans %}</a>
 						{% if is_pi or is_linux %}
 							{# MSG: Text for button which reboots the machine running Pikaraoke. #}
-							<a id="restart-link" class="button is-primary" href="{{ url_for('admin.reboot') }}">{% trans %}Reboot System{% endtrans %}</a>
+							<a id="restart-link" class="button is-primary maintenance-action" href="{{ url_for('admin.reboot') }}">{% trans %}Reboot System{% endtrans %}</a>
 
 							{# MSG: Text for button which turn soff the machine running Pikaraoke. #}
-							<a id="shutdown-link" class="button is-primary" href="{{ url_for('admin.shutdown') }}">{% trans %}Shutdown System{% endtrans %}</a>
+							<a id="shutdown-link" class="button is-primary maintenance-action" href="{{ url_for('admin.shutdown') }}">{% trans %}Shutdown System{% endtrans %}</a>
 						{% endif %}
 					</div>
 

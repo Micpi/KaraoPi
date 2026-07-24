@@ -21,6 +21,7 @@ import requests
 DEFAULT_REPOSITORY = "Micpi/KaraoPi"
 GITHUB_API_BASE = "https://api.github.com/repos"
 UPDATE_LOG_FILE = "karaopi-update.log"
+UPDATE_STATUS_FILE = ".karaopi_update_status.json"
 UPDATE_TIMEOUT_SECONDS = 10
 GITHUB_API_HEADERS = {
     "Accept": "application/vnd.github+json",
@@ -31,6 +32,70 @@ GITHUB_API_HEADERS = {
 
 class AppUpdateError(RuntimeError):
     pass
+
+
+def get_update_status_path(app_root):
+    return os.path.join(app_root, UPDATE_STATUS_FILE)
+
+
+def write_update_status(app_root, progress, message, state="updating", **extra):
+    """Atomically publish update progress for the system-level display."""
+    status_path = get_update_status_path(app_root)
+    temporary_path = status_path + ".tmp"
+    payload = {
+        "progress": max(0, min(100, int(progress))),
+        "message": str(message),
+        "state": state,
+        "updated_at": time.time(),
+        **extra,
+    }
+    with open(temporary_path, "w", encoding="utf-8") as status_file:
+        json.dump(payload, status_file)
+    os.replace(temporary_path, status_path)
+
+
+def launch_update_display(app_root):
+    """Launch the optional GTK update display independently from KaraoPi."""
+    if os.name == "nt" or os.environ.get("KARAOPI_UPDATE_DISPLAY_ACTIVE"):
+        return None
+    display_script = os.path.join(app_root, "scripts", "karaopi_update_display.py")
+    if not os.path.isfile(display_script):
+        return None
+    environment = os.environ.copy()
+    environment["KARAOPI_UPDATE_DISPLAY_ACTIVE"] = "1"
+    try:
+        return subprocess.Popen(
+            [
+                sys.executable,
+                display_script,
+                "--status-file",
+                get_update_status_path(app_root),
+                "--logo",
+                os.path.join(app_root, "pikaraoke", "static", "images", "karaopi-logo-boot.png"),
+            ],
+            cwd=app_root,
+            env=environment,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        logging.warning("Unable to start KaraoPi update display: %s", exc)
+        return None
+
+
+def mark_update_display_complete(app_root):
+    """Close a pending update display once the splash browser reconnects."""
+    status_path = get_update_status_path(app_root)
+    if not os.path.isfile(status_path):
+        return
+    try:
+        with open(status_path, "r", encoding="utf-8") as status_file:
+            status = json.load(status_file)
+        if status.get("state") == "awaiting_browser":
+            write_update_status(app_root, 100, "KaraoPi is ready", state="complete")
+    except (OSError, ValueError):
+        logging.debug("Unable to complete update display state", exc_info=True)
 
 
 def normalize_release_version(version):
@@ -135,13 +200,20 @@ def apply_pending_update(app_root):
         return False
 
     configure_logging(app_root)
+    write_update_status(app_root, 8, f"Preparing KaraoPi {marker['tag']}")
     logging.info("Applying pending KaraoPi update to %s", marker["tag"])
     with tempfile.TemporaryDirectory(prefix="karaopi-update-") as temp_dir:
-        archive_path = download_release_archive(marker["zip_url"], temp_dir)
+        archive_path = download_release_archive(marker["zip_url"], temp_dir, app_root=app_root)
+        write_update_status(app_root, 52, "Extracting the update")
         release_root = extract_release_archive(archive_path, temp_dir)
+        write_update_status(app_root, 65, "Installing application files")
         sync_release_to_app_root(release_root, app_root)
+    write_update_status(app_root, 78, "Updating dependencies")
     install_requirements(app_root)
     clear_pending_update_marker(app_root)
+    write_update_status(
+        app_root, 94, "Starting KaraoPi and Chromium", state="awaiting_browser"
+    )
     logging.info("KaraoPi update to %s applied successfully.", marker["tag"])
     return True
 
@@ -150,6 +222,11 @@ def start_background_update(app_root, current_version, relaunch_command, reposit
     update_status = get_release_update_status(current_version, repository=repository)
     if not update_status["update_available"]:
         raise AppUpdateError("KaraoPi is already running the latest release.")
+
+    write_update_status(
+        app_root, 3, f"Preparing update {update_status['latest_tag']}", tag=update_status["latest_tag"]
+    )
+    launch_update_display(app_root)
 
     if os.environ.get("KARAOPI_LAUNCHER"):
         # Running under scripts/karaopi_launch.sh: just record the pending update.
@@ -220,7 +297,7 @@ def wait_for_process_exit(pid, timeout=120):
     raise AppUpdateError(f"Timed out while waiting for process {pid} to exit.")
 
 
-def download_release_archive(zip_url, destination_dir):
+def download_release_archive(zip_url, destination_dir, app_root=None):
     archive_path = os.path.join(destination_dir, "release.zip")
     try:
         with requests.get(
@@ -234,10 +311,20 @@ def download_release_archive(zip_url, destination_dir):
         ) as response:
             if not response.ok:
                 raise AppUpdateError(f"Unable to download release archive: HTTP {response.status_code}")
+            total_bytes = int(getattr(response, "headers", {}).get("content-length", 0) or 0)
+            downloaded_bytes = 0
             with open(archive_path, "wb") as archive_file:
                 for chunk in response.iter_content(chunk_size=1024 * 64):
                     if chunk:
                         archive_file.write(chunk)
+                        downloaded_bytes += len(chunk)
+                        if app_root and total_bytes:
+                            percentage = 12 + int((downloaded_bytes / total_bytes) * 36)
+                            write_update_status(
+                                app_root,
+                                percentage,
+                                f"Downloading update · {downloaded_bytes // 1024 // 1024} MB",
+                            )
     except requests.RequestException as exc:
         raise AppUpdateError(f"Unable to download release archive: {exc}")
     return archive_path
@@ -346,11 +433,16 @@ def run_update(app_root, repository, tag, zip_url, wait_for_pid, relaunch_comman
     logging.info("Application process %s exited, downloading release archive", wait_for_pid)
 
     with tempfile.TemporaryDirectory(prefix="karaopi-update-") as temp_dir:
-        archive_path = download_release_archive(zip_url, temp_dir)
+        write_update_status(app_root, 10, "Downloading the KaraoPi update")
+        archive_path = download_release_archive(zip_url, temp_dir, app_root=app_root)
+        write_update_status(app_root, 52, "Extracting the update")
         release_root = extract_release_archive(archive_path, temp_dir)
+        write_update_status(app_root, 65, "Installing application files")
         sync_release_to_app_root(release_root, app_root)
 
+    write_update_status(app_root, 78, "Updating dependencies")
     install_requirements(app_root)
+    write_update_status(app_root, 94, "Starting KaraoPi and Chromium", state="awaiting_browser")
     relaunch_application(relaunch_command, app_root)
     logging.info("KaraoPi update finished successfully.")
 
@@ -382,6 +474,9 @@ def main(argv=None):
             apply_pending_update(app_root)
         except Exception as exc:
             configure_logging(app_root)
+            write_update_status(
+                app_root, 99, f"Update failed: {exc}", state="error"
+            )
             logging.exception("Failed to apply pending KaraoPi update: %s", exc)
             return 1
         return 0
@@ -412,6 +507,10 @@ def main(argv=None):
     except Exception as exc:
         try:
             configure_logging(app_root)
+        except Exception:
+            pass
+        try:
+            write_update_status(app_root, 99, f"Update failed: {exc}", state="error")
         except Exception:
             pass
         logging.exception("KaraoPi update failed: %s", exc)
