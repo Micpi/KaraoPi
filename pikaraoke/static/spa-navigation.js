@@ -8,7 +8,9 @@
 
     // Configuration
     const config = {
-        contentSelector: '.box',
+        // Target only the page surface. Using the generic `.box` class also
+        // matched nested cards and duplicated the page header/menu on SPA navigation.
+        contentSelector: '.app-surface',
         linkSelector: 'a[href]', // Intercept all links, not just navbar
         notificationSelector: '#notification-alt',
         scrollBehavior: 'smooth'

@@ -1801,6 +1801,133 @@ input[type="range"] {
   }
 }
 
+/* Definitive phone trigger: one SVG icon, flush right, with a true X state. */
+@media screen and (max-width: 768px) {
+  .app-surface .page-menu-toggle {
+    width: 34px;
+    height: 40px;
+    min-height: 40px;
+    flex-basis: 34px;
+    margin-right: -7px;
+    padding: 0;
+  }
+
+  .page-menu-toggle .page-menu-icon {
+    display: block;
+    width: 25px;
+    height: 25px;
+    margin-left: auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .page-menu-toggle .menu-icon-open,
+  .page-menu-toggle .menu-icon-close {
+    transform-origin: center;
+    transition: opacity .16s ease, transform .2s ease;
+  }
+
+  .page-menu-toggle .menu-icon-close {
+    opacity: 0;
+    transform: rotate(-35deg) scale(.7);
+  }
+
+  .page-menu-toggle.is-active .menu-icon-open {
+    opacity: 0;
+    transform: rotate(25deg) scale(.7);
+  }
+
+  .page-menu-toggle.is-active .menu-icon-close {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* Floating category palette on Info — compact and consistent on every screen. */
+.info-page .info-quick-nav {
+  position: sticky;
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 35;
+  display: flex;
+  width: min(100%, 760px);
+  max-width: 100%;
+  margin: 0 auto 26px;
+  padding: 6px;
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 16px;
+  background: rgba(15, 17, 25, .82);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .24);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  scroll-padding-inline: 6px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.info-page .info-quick-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.info-page .info-quick-nav a {
+  flex: 0 0 132px;
+  width: 132px;
+  min-width: 132px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 11px;
+  justify-content: flex-start;
+  gap: 7px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--kp-muted) !important;
+  font-size: .73rem;
+  font-weight: 650;
+  letter-spacing: .005em;
+  scroll-snap-align: start;
+  white-space: nowrap;
+}
+
+.info-page .info-quick-nav a:hover,
+.info-page .info-quick-nav a:focus {
+  background: rgba(255, 255, 255, .06);
+  color: white !important;
+}
+
+.info-page .info-quick-nav a i {
+  width: 20px;
+  flex: 0 0 20px;
+  margin: 0;
+  color: color-mix(in srgb, var(--karaopi-secondary) 75%, white);
+  text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+  .info-page .info-quick-nav {
+    width: 100%;
+    margin-bottom: 20px;
+    border-radius: 14px;
+    mask-image: linear-gradient(to right, transparent 0, black 10px, black calc(100% - 10px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 10px, black calc(100% - 10px), transparent 100%);
+  }
+
+  .info-page .info-quick-nav a {
+    flex-basis: 124px;
+    width: 124px;
+    min-width: 124px;
+    height: 40px;
+    min-height: 40px;
+    font-size: .7rem;
+  }
+}
+
 @keyframes navbar-panel-in {
   from {
     opacity: 0;
