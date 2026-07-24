@@ -1583,6 +1583,56 @@ input[type="range"] {
   }
 }
 
+/* Icon-only hamburger trigger with an explicit close animation. */
+@media screen and (max-width: 768px) {
+  .app-shell .navbar-burger,
+  .app-shell .navbar-burger:hover,
+  .app-shell .navbar-burger:focus,
+  .app-shell .navbar-burger.is-active {
+    border: 0;
+    outline: 0;
+    background: transparent !important;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .app-shell .navbar-burger span {
+    left: 10px;
+    width: 20px;
+    height: 1.5px;
+    border-radius: 3px;
+    background: currentColor;
+    transform-origin: center;
+  }
+
+  .app-shell .navbar-burger span:nth-child(1) {
+    top: 13px;
+  }
+
+  .app-shell .navbar-burger span:nth-child(2) {
+    top: 19px;
+  }
+
+  .app-shell .navbar-burger span:nth-child(3) {
+    top: 25px;
+  }
+
+  .app-shell .navbar-burger.is-active span:nth-child(1) {
+    top: 19px;
+    transform: rotate(45deg);
+  }
+
+  .app-shell .navbar-burger.is-active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .app-shell .navbar-burger.is-active span:nth-child(3) {
+    top: 19px;
+    transform: rotate(-45deg);
+  }
+}
+
 @keyframes navbar-panel-in {
   from {
     opacity: 0;
