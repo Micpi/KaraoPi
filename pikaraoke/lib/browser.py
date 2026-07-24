@@ -39,6 +39,7 @@ class Browser:
         self.external_monitor = external_monitor
         self.browser_process: subprocess.Popen | None = None
         self.browser_profile_dir = os.path.join(get_data_directory(), "browser_profile")
+        self.firefox_profile_dir = os.path.join(get_data_directory(), "firefox_kiosk_profile")
         self.splash_url = f"{self.karaoke.url}/splash"
         self._closing = threading.Event()
         self._watchdog_thread: threading.Thread | None = None
@@ -143,6 +144,28 @@ class Browser:
         except (OSError, subprocess.TimeoutExpired):
             logging.debug("Unable to set the X11 root background to black")
 
+    def _preferred_browser(self) -> str:
+        choice = self.karaoke.preferences.get_or_default("kiosk_browser")
+        return choice if choice in {"auto", "chromium", "firefox"} else "auto"
+
+    def _prepare_firefox_profile(self) -> None:
+        """Create a small dedicated profile tuned for unattended local media."""
+        os.makedirs(self.firefox_profile_dir, exist_ok=True)
+        preferences = (
+            'user_pref("media.autoplay.default", 0);\n'
+            'user_pref("media.autoplay.blocking_policy", 0);\n'
+            'user_pref("browser.sessionstore.resume_from_crash", false);\n'
+            'user_pref("browser.shell.checkDefaultBrowser", false);\n'
+            'user_pref("browser.aboutwelcome.enabled", false);\n'
+            'user_pref("datareporting.healthreport.uploadEnabled", false);\n'
+            'user_pref("toolkit.telemetry.enabled", false);\n'
+        )
+        path = os.path.join(self.firefox_profile_dir, "user.js")
+        temporary = path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as output:
+            output.write(preferences)
+        os.replace(temporary, path)
+
     def launch_splash_screen(self) -> subprocess.Popen | None:
         """Launch the browser with the splash screen in kiosk mode.
 
@@ -159,14 +182,15 @@ class Browser:
         stderr_dest = subprocess.DEVNULL if suppress_logs else None
 
         # Browser candidates ordered by preference (Chrome/Chromium/Edge only)
-        candidates = []
+        chromium_candidates = []
+        firefox_candidates = []
 
         if is_windows():
             prog_files = os.environ.get("ProgramFiles", r"C:\Program Files")
             prog_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
             local_app_data = os.environ.get("LOCALAPPDATA", r"C:\Users\Default\AppData\Local")
 
-            candidates.extend(
+            chromium_candidates.extend(
                 [
                     os.path.join(prog_files, r"Google\Chrome\Application\chrome.exe"),
                     os.path.join(prog_files_x86, r"Google\Chrome\Application\chrome.exe"),
@@ -175,8 +199,14 @@ class Browser:
                     os.path.join(prog_files_x86, r"Microsoft\Edge\Application\msedge.exe"),
                 ]
             )
+            firefox_candidates.extend(
+                [
+                    os.path.join(prog_files, r"Mozilla Firefox\firefox.exe"),
+                    os.path.join(prog_files_x86, r"Mozilla Firefox\firefox.exe"),
+                ]
+            )
         elif is_linux():
-            candidates.extend(
+            chromium_candidates.extend(
                 [
                     "chromium-browser",
                     "chromium",
@@ -184,52 +214,75 @@ class Browser:
                     "chrome",
                 ]
             )
+            firefox_candidates.extend(["firefox", "firefox-esr"])
         elif is_macos():
-            candidates.extend(
+            chromium_candidates.extend(
                 [
                     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
                 ]
             )
+            firefox_candidates.append("/Applications/Firefox.app/Contents/MacOS/firefox")
+
+        preference = self._preferred_browser()
+        if preference == "firefox":
+            candidates = [("firefox", path) for path in firefox_candidates]
+            candidates.extend(("chromium", path) for path in chromium_candidates)
+        else:
+            candidates = [("chromium", path) for path in chromium_candidates]
+            candidates.extend(("firefox", path) for path in firefox_candidates)
 
         # Find first available browser binary
         browser_executable = None
-        for path in candidates:
+        browser_kind = None
+        for kind, path in candidates:
             if os.path.isabs(path):
                 if os.path.exists(path):
                     browser_executable = path
+                    browser_kind = kind
                     break
             elif shutil.which(path):
                 browser_executable = shutil.which(path)
+                browser_kind = kind
                 break
 
         # Launch with Chromium flags if browser found
         if browser_executable:
-            cmd = [browser_executable]
             launch_url = self._get_launch_url()
-
-            # Always use a dedicated profile. On a Pi, sharing Chromium's
-            # default profile can attach the kiosk URL to a stale pre-existing
-            # process/session and intermittently leave a white or black window.
-            cmd.append(f"--user-data-dir={self.browser_profile_dir}")
-
-            if self.window_size:
-                # Windowed mode: use --app for minimal UI, --new-window to ensure sizing works
-                cmd.append("--new-window")
-                cmd.append(f"--window-size={self.window_size}")
-                cmd.append(f"--app={launch_url}")
+            if browser_kind == "firefox":
+                self._prepare_firefox_profile()
+                cmd = [
+                    browser_executable,
+                    "-no-remote",
+                    "-profile",
+                    self.firefox_profile_dir,
+                    "-kiosk",
+                    "-private-window",
+                    launch_url,
+                ]
             else:
-                cmd.append("--kiosk")
-                cmd.append("--start-fullscreen")
+                cmd = [browser_executable]
+                # A dedicated profile prevents Chromium from attaching the
+                # kiosk URL to an unrelated, stale browser session.
+                cmd.append(f"--user-data-dir={self.browser_profile_dir}")
+
+                if self.window_size:
+                    cmd.append("--new-window")
+                    cmd.append(f"--window-size={self.window_size}")
+                    cmd.append(f"--app={launch_url}")
+                else:
+                    cmd.append("--kiosk")
+                    cmd.append("--start-fullscreen")
                 # Reinforce true fullscreen sizing: on some X11 setups (e.g. no/slow
                 # window manager), --kiosk alone can leave Chromium sized to a
                 # default (often half-screen) window instead of the full display.
-                detected_resolution = self._get_screen_resolution()
-                if detected_resolution:
-                    cmd.append(f"--window-size={detected_resolution}")
+                    detected_resolution = self._get_screen_resolution()
+                    if detected_resolution:
+                        cmd.append(f"--window-size={detected_resolution}")
 
             # Flags to bypass interactions and errors
-            cmd.extend(
+            if browser_kind == "chromium":
+                cmd.extend(
                 [
                     "--autoplay-policy=no-user-gesture-required",
                     "--no-user-gesture-required",
@@ -245,22 +298,22 @@ class Browser:
                     "--disable-sync",
                     "--check-for-update-interval=31536000",
                     "--password-store=basic",
-                ]
-            )
+                ])
 
-            if self.external_monitor:
-                cmd.append("--window-position=2000,0")
-            else:
-                cmd.append("--window-position=0,0")
+                if self.external_monitor:
+                    cmd.append("--window-position=2000,0")
+                else:
+                    cmd.append("--window-position=0,0")
 
             # Pi optimizations
-            if self.karaoke.is_raspberry_pi:
+            if self.karaoke.is_raspberry_pi and browser_kind == "chromium":
                 cmd.extend(self._pi_chromium_flags())
 
             # URL must be last argument for --kiosk mode
-            if not self.window_size:
+            if browser_kind == "chromium" and not self.window_size:
                 cmd.append(launch_url)
 
+            logging.info("Launching %s as the KaraoPi kiosk browser", browser_kind)
             logging.debug(f"Browser command: {' '.join(cmd)}")
             try:
                 self.browser_process = subprocess.Popen(cmd, stdout=stdout_dest, stderr=stderr_dest)

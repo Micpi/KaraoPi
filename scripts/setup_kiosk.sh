@@ -56,6 +56,17 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get install -y ffmpeg || echo "Warning: could not install ffmpeg automatically."
 fi
 
+# Firefox is an officially optimized second browser on Raspberry Pi OS and
+# gives KaraoPi a separate kiosk playback engine when Chromium is unstable.
+if ! command -v firefox >/dev/null 2>&1 && ! command -v firefox-esr >/dev/null 2>&1; then
+  echo
+  echo "*** Installing Firefox kiosk alternative ***"
+  sudo apt-get update -y || true
+  sudo apt-get install -y firefox || \
+    sudo apt-get install -y firefox-esr || \
+    echo "Warning: Firefox could not be installed. KaraoPi will continue using Chromium."
+fi
+
 # 1. Boot straight to the desktop with auto-login (removes the login prompt/console).
 if command -v raspi-config >/dev/null 2>&1; then
   echo

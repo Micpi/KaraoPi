@@ -998,6 +998,27 @@
 
 		<div class="card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
+				<h3 class="title mb-0">{% trans %}Splash kiosk browser{% endtrans %}</h3>
+			</header>
+			<div class="card-content collapsible-content">
+				<div class="content">
+					<div class="field">
+						<label class="label" for="pref-kiosk-browser">{% trans %}Browser used for the local HDMI splash screen{% endtrans %}</label>
+						<div class="select is-fullwidth">
+							<select id="pref-kiosk-browser" class="user-preference-input" data-pref="kiosk_browser" data-start-value="{{ kiosk_browser }}">
+								<option value="auto" {% if kiosk_browser == "auto" %}selected{% endif %}>{% trans %}Automatic (Chromium first){% endtrans %}</option>
+								<option value="firefox" {% if kiosk_browser == "firefox" %}selected{% endif %}>{% trans %}Firefox — recommended alternative for Raspberry Pi{% endtrans %}</option>
+								<option value="chromium" {% if kiosk_browser == "chromium" %}selected{% endif %}>{% trans %}Chromium{% endtrans %}</option>
+							</select>
+						</div>
+					</div>
+					<p class="is-size-7 has-text-grey">{% trans %}Restart KaraoPi after changing the kiosk browser. If the selected browser is unavailable, KaraoPi automatically uses the other one.{% endtrans %}</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
 				{# MSG: Label for the QR code customization section #}
 				<h3 class="title mb-0">{% trans %}QR code{% endtrans %}</h3>
 			</header>

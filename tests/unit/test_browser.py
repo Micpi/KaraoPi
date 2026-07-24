@@ -54,3 +54,16 @@ def test_pi_chromium_flags_keep_gpu_acceleration_and_bound_cache():
     assert "--media-cache-size=134217728" in flags
     assert "--disable-gpu" not in flags
     assert "--disable-software-rasterizer" not in flags
+
+
+def test_firefox_profile_allows_unattended_autoplay(tmp_path):
+    karaoke = MagicMock()
+    karaoke.url = "http://127.0.0.1:5555"
+    browser = Browser(karaoke)
+    browser.firefox_profile_dir = str(tmp_path)
+
+    browser._prepare_firefox_profile()
+
+    preferences = (tmp_path / "user.js").read_text(encoding="utf-8")
+    assert 'user_pref("media.autoplay.default", 0);' in preferences
+    assert 'user_pref("browser.sessionstore.resume_from_crash", false);' in preferences

@@ -52,6 +52,7 @@ class PreferenceManager:
         "itunes_search_country": "US",
         # KaraoPi customization: curated interface theme, branding, and QR code appearance.
         "interface_theme": "midnight",
+        "kiosk_browser": "auto",
         "custom_logo_path": "",
         "theme_primary_color": "#7b3fe4",
         "theme_secondary_color": "#ffb020",

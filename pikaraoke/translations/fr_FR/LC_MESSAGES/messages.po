@@ -946,6 +946,24 @@ msgstr "Mise à jour de KaraoPi disponible"
 msgid "View update"
 msgstr "Voir la mise à jour"
 
+msgid "Splash kiosk browser"
+msgstr "Navigateur kiosk du splash"
+
+msgid "Browser used for the local HDMI splash screen"
+msgstr "Navigateur utilisé pour le splash HDMI local"
+
+msgid "Automatic (Chromium first)"
+msgstr "Automatique (Chromium prioritaire)"
+
+msgid "Firefox — recommended alternative for Raspberry Pi"
+msgstr "Firefox — alternative recommandée pour Raspberry Pi"
+
+msgid "Chromium"
+msgstr "Chromium"
+
+msgid "Restart KaraoPi after changing the kiosk browser. If the selected browser is unavailable, KaraoPi automatically uses the other one."
+msgstr "Redémarrez KaraoPi après avoir changé le navigateur kiosk. Si le navigateur sélectionné est indisponible, KaraoPi utilise automatiquement l’autre."
+
 msgid "The selected theme is applied to the complete web interface after saving."
 msgstr "Le thème sélectionné est appliqué à toute l'interface web après l'enregistrement."
 

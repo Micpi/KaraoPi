@@ -290,6 +290,7 @@ def test_preference_manager_defaults_exist():
         "metadata_provider",
             "itunes_search_country",
             "interface_theme",
+            "kiosk_browser",
             # KaraoPi customization: branding, theme colors, QR code appearance, screensaver style.
         "custom_logo_path",
         "theme_primary_color",
