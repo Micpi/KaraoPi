@@ -142,29 +142,38 @@
       };
     }
 
+    function renderConnectionStatus(connected) {
+      $("#connected-interfaces")
+        .toggleClass("is-connected", connected)
+        .toggleClass("is-disconnected", !connected)
+        .attr("aria-label", connected
+          ? {{ _('Connected to KaraoPi') | tojson }}
+          : {{ _('Connection to KaraoPi lost') | tojson }})
+        .attr("title", connected
+          ? {{ _('Connected to KaraoPi') | tojson }}
+          : {{ _('Connection to KaraoPi lost') | tojson }});
+      $("#connected-interface-label").text(connected
+        ? {{ _('Connected') | tojson }}
+        : {{ _('Disconnected') | tojson }});
+    }
+
     function connectSocket() {
       if (window.socket) {
+        renderConnectionStatus(window.socket.connected === true);
         return;
       }
       window.socket = io({ path: window.pikaraokeConfig.socketioPath });
       window.socket.on('connect', function() {
           console.log('Socket connected');
-          $("#connected-interfaces")
-            .removeClass("is-disconnected")
-            .addClass("is-connected")
-            .attr("aria-label", {{ _('Connected to KaraoPi') | tojson }})
-            .attr("title", {{ _('Connected to KaraoPi') | tojson }});
-          $("#connected-interface-label").text({{ _('Connected') | tojson }});
+          renderConnectionStatus(true);
       });
       window.socket.on('disconnect', function() {
           console.log('Socket disconnected');
-          $("#connected-interfaces")
-            .removeClass("is-connected")
-            .addClass("is-disconnected")
-            .attr("aria-label", {{ _('Connection to KaraoPi lost') | tojson }})
-            .attr("title", {{ _('Connection to KaraoPi lost') | tojson }});
-          $("#connected-interface-label").text({{ _('Disconnected') | tojson }});
+          renderConnectionStatus(false);
       });
+      // Socket.IO may connect before a very fast local page has finished
+      // attaching its handlers. Reflect the actual transport state now too.
+      renderConnectionStatus(window.socket.connected === true);
       window.socket.on('score_update', function() {
           var basePath = window.pikaraokeConfig.basePath || "";
           if (window.location.pathname === basePath + "/scores") {

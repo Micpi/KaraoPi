@@ -104,6 +104,20 @@ def mark_update_display_complete(app_root):
         logging.debug("Unable to complete update display state", exc_info=True)
 
 
+def advance_startup_display(app_root, progress, message):
+    """Advance the boot display without interfering with a release update."""
+    status_path = get_update_status_path(app_root)
+    if not os.path.isfile(status_path):
+        return
+    try:
+        with open(status_path, "r", encoding="utf-8") as status_file:
+            status = json.load(status_file)
+        if status.get("state") == "awaiting_browser":
+            write_update_status(app_root, progress, message, state="awaiting_browser")
+    except (OSError, ValueError):
+        logging.debug("Unable to advance startup display state", exc_info=True)
+
+
 def normalize_release_version(version):
     return str(version or "").strip().lstrip("vV")
 

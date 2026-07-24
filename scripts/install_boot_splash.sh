@@ -24,6 +24,7 @@ fi
 TARGET_USER="${SUDO_USER:-pi}"
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 BOOT_SPLASH_SOURCE="$TARGET_HOME/.pikaraoke/boot-splash.png"
+BOOT_STAGE_SOURCE="$TARGET_HOME/.pikaraoke/boot-stage.jpg"
 PLYMOUTH_THEME_DIR="/usr/share/plymouth/themes/pix"
 PLYMOUTH_SPLASH="$PLYMOUTH_THEME_DIR/splash.png"
 
@@ -45,6 +46,19 @@ fi
 
 echo "*** Linking the boot splash to KaraoPi's logo ***"
 ln -sf "$BOOT_SPLASH_SOURCE" "$PLYMOUTH_SPLASH"
+
+# Recent pix theme variants may paint stage.jpg behind splash.png. Replace it
+# with the same full-screen KaraoPi composition so the Raspberry desktop image
+# can never flash between the firmware screen and the native progress window.
+for stage_name in stage.jpg stage.jpeg; do
+  stage_path="$PLYMOUTH_THEME_DIR/$stage_name"
+  if [ -e "$stage_path" ] || [ -L "$stage_path" ]; then
+    if [ ! -e "$stage_path.karaopi-backup" ] && [ ! -L "$stage_path" ]; then
+      cp "$stage_path" "$stage_path.karaopi-backup"
+    fi
+    ln -sf "$BOOT_STAGE_SOURCE" "$stage_path"
+  fi
+done
 
 echo "*** Installing a systemd watcher to refresh the boot image automatically ***"
 cat > /etc/systemd/system/karaopi-boot-splash.service <<EOF

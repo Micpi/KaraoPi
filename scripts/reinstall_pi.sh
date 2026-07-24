@@ -97,6 +97,25 @@ else
   echo "Chromium already installed."
 fi
 
+# Firefox is the preferred Raspberry Pi kiosk engine for this installation.
+# setup_kiosk.sh also verifies it, but installing it here lets us persist the
+# browser preference before the first appliance boot.
+if ! command -v firefox >/dev/null 2>&1 && ! command -v firefox-esr >/dev/null 2>&1; then
+  echo "Firefox not found, installing the Raspberry Pi kiosk browser..."
+  sudo apt-get update -y || true
+  sudo apt-get install -y firefox || \
+    sudo apt-get install -y firefox-esr || \
+    echo "Warning: Firefox could not be installed; KaraoPi will fall back to Chromium."
+else
+  echo "Firefox already installed."
+fi
+if command -v firefox >/dev/null 2>&1 || command -v firefox-esr >/dev/null 2>&1; then
+  KARAOPI_REINSTALL_BROWSER="firefox"
+else
+  KARAOPI_REINSTALL_BROWSER="auto"
+fi
+export KARAOPI_REINSTALL_BROWSER
+
 if ! command -v uv >/dev/null 2>&1; then
   echo "uv not found, installing it (this is what KaraoPi uses to manage its Python environment)..."
   curl -fsSL https://astral.sh/uv/install.sh | sh || echo "Warning: could not install uv automatically. Install it manually: https://docs.astral.sh/uv/getting-started/installation/"
@@ -139,19 +158,34 @@ else
 fi
 
 echo
-echo "*** DONE ***"
-echo "KaraoPi has been reinstalled in: $INSTALL_DIR"
-if command -v uv >/dev/null 2>&1; then
-  echo "Start it with: cd $INSTALL_DIR && uv run pikaraoke"
+echo "*** PREPARING KARAOPI APPLIANCE ASSETS ***"
+if [ -x "$INSTALL_DIR/.venv/bin/python" ]; then
+  "$INSTALL_DIR/.venv/bin/python" - <<'PY'
+import os
+
+from pikaraoke.lib.boot_splash import update_boot_splash_image
+from pikaraoke.lib.preference_manager import PreferenceManager
+
+preferences = PreferenceManager()
+preferences.set("kiosk_browser", os.environ.get("KARAOPI_REINSTALL_BROWSER", "auto"))
+update_boot_splash_image(preferences.get_or_default("custom_logo_path") or None)
+print("Kiosk browser preference and modern boot artwork prepared.")
+PY
 else
-  echo "Start it with: cd $INSTALL_DIR && .venv/bin/python -m pikaraoke.app"
+  echo "Warning: Python environment unavailable; KaraoPi will generate the boot artwork on first launch."
 fi
 
 echo
-read -p "Configure this Raspberry Pi as a dedicated kiosk appliance (autostart, hidden console, fullscreen)? (y/n): " SETUP_KIOSK
-if [ "$SETUP_KIOSK" = "y" ]; then
+if [ "${KARAOPI_SKIP_KIOSK:-0}" != "1" ]; then
+  echo "*** CONFIGURING THE COMPLETE KARAOPI KIOSK APPLIANCE ***"
   chmod +x "$INSTALL_DIR/scripts/setup_kiosk.sh"
-  "$INSTALL_DIR/scripts/setup_kiosk.sh" "$INSTALL_DIR"
+  chmod +x "$INSTALL_DIR/scripts/install_boot_splash.sh"
+  KARAOPI_INSTALL_BOOT_SPLASH=1 "$INSTALL_DIR/scripts/setup_kiosk.sh" "$INSTALL_DIR"
 else
-  echo "Skipping kiosk setup. You can run it later with: $INSTALL_DIR/scripts/setup_kiosk.sh"
+  echo "Kiosk setup skipped because KARAOPI_SKIP_KIOSK=1."
 fi
+
+echo
+echo "*** DONE ***"
+echo "KaraoPi has been reinstalled and configured in: $INSTALL_DIR"
+echo "Reboot to activate the complete boot-to-splash experience: sudo reboot"

@@ -100,13 +100,13 @@ if ! command -v unclutter >/dev/null 2>&1; then
   sudo apt-get install -y unclutter || echo "Warning: could not install unclutter automatically."
 fi
 
-# xterm provides the fullscreen console update progress, while YAD remains a
-# fallback. Both run independently from Chromium during replacement.
-if ! command -v xterm >/dev/null 2>&1 || ! command -v yad >/dev/null 2>&1; then
+# Tk provides the native KaraoPi boot/update interface. xterm and YAD remain
+# fallbacks and all three run independently from the kiosk browser.
+if ! python3 -c "import tkinter" >/dev/null 2>&1 || ! command -v xterm >/dev/null 2>&1 || ! command -v yad >/dev/null 2>&1; then
   echo
   echo "*** Installing fullscreen KaraoPi update display ***"
   sudo apt-get update -y || true
-  sudo apt-get install -y xterm yad || echo "Warning: could not install xterm/YAD. Updates will continue without the fullscreen progress display."
+  sudo apt-get install -y python3-tk xterm yad || echo "Warning: could not install the native progress display. Updates will continue with the available fallback."
 fi
 
 # libCEC lets the TV remote control KaraoPi over HDMI (play/pause, stop,
@@ -181,6 +181,9 @@ while true; do
   fi
 
   echo "$(date): starting KaraoPi" >> "$LOG_FILE"
+  if [ ! -f "$KARAOPI_INSTALL_DIR/.karaopi_update_pending.json" ]; then
+    printf '%s\n' '{"progress":32,"message":"Loading the KaraoPi application","state":"awaiting_browser"}' > "$STARTUP_STATUS_FILE"
+  fi
   if command -v uv >/dev/null 2>&1; then
     uv run --no-sync pikaraoke "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>&1
   else
@@ -233,7 +236,12 @@ echo "  sudo raspi-config > Display Options > Screen Blanking"
 
 if [ -f "/usr/share/plymouth/themes/pix/pix.plymouth" ]; then
   echo
-  read -p "Replace the Raspberry Pi boot logo with your KaraoPi logo (kept in sync automatically)? (y/n): " SETUP_BOOT_SPLASH
+  if [ "${KARAOPI_INSTALL_BOOT_SPLASH:-0}" = "1" ]; then
+    SETUP_BOOT_SPLASH="y"
+    echo "Installing the KaraoPi Plymouth boot interface automatically."
+  else
+    read -p "Replace the Raspberry Pi boot logo with your KaraoPi interface (kept in sync automatically)? (y/n): " SETUP_BOOT_SPLASH
+  fi
   if [ "$SETUP_BOOT_SPLASH" = "y" ]; then
     if [ ! -f "$HOME/.pikaraoke/boot-splash.png" ]; then
       echo "Start KaraoPi at least once first so it can generate the boot splash image, then re-run this script."

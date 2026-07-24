@@ -110,6 +110,137 @@ def run_console(status_file):
     return 0
 
 
+def run_tk_display(status_file, logo_path):
+    """Render the canonical KaraoPi boot/update card without a browser."""
+    try:
+        import tkinter as tk
+    except ImportError:
+        return None
+
+    try:
+        root = tk.Tk(className="KaraoPi")
+    except tk.TclError:
+        return None
+
+    root.configure(bg="#07090f")
+    root.attributes("-fullscreen", True)
+    root.attributes("-topmost", True)
+    root.overrideredirect(True)
+    root.lift()
+
+    card = tk.Frame(
+        root,
+        width=520,
+        height=410,
+        bg="#121520",
+        highlightbackground="#343744",
+        highlightthickness=1,
+    )
+    card.place(relx=0.5, rely=0.5, anchor="center")
+    card.pack_propagate(False)
+
+    logo_image = None
+    if logo_path and os.path.isfile(logo_path):
+        try:
+            logo_image = tk.PhotoImage(file=logo_path)
+            scale = max(1, max(logo_image.width(), logo_image.height()) // 104)
+            if scale > 1:
+                logo_image = logo_image.subsample(scale, scale)
+            tk.Label(card, image=logo_image, bg="#121520").pack(pady=(34, 10))
+        except tk.TclError:
+            logo_image = None
+
+    tk.Label(
+        card,
+        text="KaraoPi",
+        font=("DejaVu Sans", 30, "bold"),
+        fg="#ffffff",
+        bg="#121520",
+    ).pack(pady=(4 if logo_image else 72, 4))
+
+    state_label = tk.Label(
+        card,
+        text="PREPARING THE KARAOKE EXPERIENCE",
+        font=("DejaVu Sans", 10, "bold"),
+        fg="#8b5cf6",
+        bg="#121520",
+    )
+    state_label.pack(pady=(2, 12))
+
+    message_label = tk.Label(
+        card,
+        text="Starting KaraoPi system services",
+        font=("DejaVu Sans", 12),
+        fg="#aeb4c5",
+        bg="#121520",
+        wraplength=430,
+        justify="center",
+    )
+    message_label.pack(pady=(0, 20))
+
+    track = tk.Canvas(card, width=360, height=8, bg="#121520", highlightthickness=0)
+    track.pack()
+    track.create_rectangle(0, 1, 360, 7, fill="#2d3244", outline="")
+    progress_bar = track.create_rectangle(0, 1, 1, 7, fill="#8b5cf6", outline="")
+
+    percent_label = tk.Label(
+        card,
+        text="0%",
+        font=("DejaVu Sans", 10, "bold"),
+        fg="#e8e9ef",
+        bg="#121520",
+    )
+    percent_label.pack(pady=(10, 0))
+
+    last_payload = None
+    error_since = None
+
+    def refresh():
+        nonlocal last_payload, error_since
+        status = read_status(status_file) or {
+            "progress": 0,
+            "message": "Preparing the karaoke experience…",
+            "state": "awaiting_browser",
+        }
+        progress = max(0, min(100, int(status.get("progress", 0))))
+        state = str(status.get("state") or "updating")
+        payload = (progress, status.get("message"), state)
+        if payload != last_payload:
+            labels = {
+                "updating": "KARAOPI UPDATE IN PROGRESS",
+                "awaiting_browser": "PREPARING THE KARAOKE EXPERIENCE",
+                "complete": "KARAOPI IS READY",
+                "error": "UPDATE NEEDS ATTENTION",
+            }
+            state_label.configure(text=labels.get(state, state.replace("_", " ").upper()))
+            message_label.configure(text=str(status.get("message") or "Preparing KaraoPi"))
+            track.coords(progress_bar, 0, 1, max(3, int(3.6 * progress)), 7)
+            progress_bar_color = "#22d3ee" if progress >= 100 else "#8b5cf6"
+            track.itemconfigure(progress_bar, fill=progress_bar_color)
+            percent_label.configure(text=f"{progress}%")
+            last_payload = payload
+        if state == "complete":
+            root.after(650, root.destroy)
+            return
+        if state == "error":
+            error_since = error_since or time.monotonic()
+            if time.monotonic() - error_since >= 20:
+                root.destroy()
+                return
+        root.lift()
+        root.after(250, refresh)
+
+    root.after(0, refresh)
+    root.mainloop()
+    status = read_status(status_file)
+    if status and status.get("state") == "complete":
+        try:
+            os.remove(status_file)
+        except OSError:
+            pass
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--status-file", required=True)
@@ -120,8 +251,14 @@ def main():
     if args.console:
         return run_console(args.status_file)
 
-    # Prefer a real terminal: it is more reliable across Raspberry Pi desktop
-    # sessions and provides the console-style update screen requested by KaraoPi.
+    # Prefer the native, browser-independent implementation of the canonical
+    # KaraoPi loading card. It covers the desktop until the splash reports a
+    # decoded media frame and survives KaraoPi/browser restarts during updates.
+    tk_result = run_tk_display(args.status_file, args.logo)
+    if tk_result is not None:
+        return tk_result
+
+    # Compatibility fallbacks for minimal desktop installations.
     xterm = shutil.which("xterm")
     yad = shutil.which("yad")
     if xterm and not yad:

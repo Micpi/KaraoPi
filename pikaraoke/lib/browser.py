@@ -18,6 +18,7 @@ from pikaraoke.lib.get_platform import (
     is_macos,
     is_windows,
 )
+from pikaraoke.lib.karaopi_release import advance_startup_display
 
 if TYPE_CHECKING:
     from pikaraoke.karaoke import Karaoke
@@ -195,6 +196,9 @@ class Browser:
         """
         logging.debug(f"Launching splash screen: {self.splash_url}")
         self._prepare_pi_display()
+        if self.karaoke.is_raspberry_pi:
+            app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            advance_startup_display(app_root, 78, "Launching the KaraoPi splash screen")
 
         suppress_logs = int(self.karaoke.log_level) > logging.DEBUG
         stdout_dest = subprocess.DEVNULL if suppress_logs else None
