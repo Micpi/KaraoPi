@@ -141,11 +141,20 @@ const formatTime = (seconds) => {
 }
 
 const testAutoplayCapability = async () => {
-  // Test if autoplay with audio is allowed using a real video file
+  // A user confirmation remains valid for this dedicated browser profile.
+  // The real playback path still handles a rejected play() defensively.
+  if (window.localStorage.getItem("karaopiAutoplayConfirmed") === "true") {
+    handleConfirmation(false);
+    return;
+  }
+
+  // Test the permission with an actual unmuted play() call. Starting muted
+  // and unmuting afterwards does not reliably exercise Chromium's policy.
   try {
     const testVideo = document.createElement('video');
     testVideo.playsInline = true;
-    testVideo.muted = true;  // Start muted (always allowed)
+    testVideo.muted = false;
+    testVideo.volume = 0.01;
     testVideo.src = withBasePath("/static/video/test_autoplay.mp4");
 
     // Wait for video to be ready
@@ -155,21 +164,8 @@ const testAutoplayCapability = async () => {
     });
 
     await testVideo.play();
-    // Now try to unmute - this is the real test
-    testVideo.muted = false;
-    testVideo.volume = 0.01;
-
-    // Brief delay to let browser enforce policy
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Check if browser paused or muted the video
-    if (testVideo.muted || testVideo.paused) {
-      testVideo.pause();
-      $('#permissions-modal').addClass('is-active');
-    } else {
-      testVideo.pause();
-      handleConfirmation();
-    }
+    testVideo.pause();
+    handleConfirmation(false);
   } catch (e) {
     // Autoplay blocked
     console.log("Autoplay error thrown", e);
@@ -177,8 +173,11 @@ const testAutoplayCapability = async () => {
   }
 };
 
-const handleConfirmation = () => {
+const handleConfirmation = (remember = true) => {
   $('#permissions-modal').removeClass('is-active');
+  if (remember) {
+    window.localStorage.setItem("karaopiAutoplayConfirmed", "true");
+  }
   autoplayConfirmed = true;
   updateBackgroundMediaState(true);
   loadNowPlaying();
@@ -398,6 +397,19 @@ async function playVideoRobustly(videoElement) {
     throw new Error(`Failed to play video after ${maxRetries} attempts (${detail})`);
 }
 
+const handlePlaybackStartFailure = (error, recoveryReason) => {
+  // Do not enter the reload recovery loop when Chromium explicitly blocked
+  // autoplay. Keep the current song pending and ask for one real interaction.
+  if (String(error && error.message).includes("NotAllowedError")) {
+    window.localStorage.removeItem("karaopiAutoplayConfirmed");
+    autoplayConfirmed = false;
+    currentVideoUrl = null;
+    $('#permissions-modal').addClass('is-active');
+    return true;
+  }
+  return recoverSplash(recoveryReason);
+};
+
 const handleNowPlayingUpdate = (np) => {
   nowPlaying = np;
   if (np.now_playing) {
@@ -486,7 +498,9 @@ const handleNowPlayingUpdate = (np) => {
         video.load();
         playVideoRobustly(video).catch(e => {
             console.error("Could not start native HLS playback:", e);
-            if (!recoverSplash("native HLS failed to start")) endSong("failed to start");
+            if (!handlePlaybackStartFailure(e, "native HLS failed to start")) {
+              endSong("failed to start");
+            }
         });
       } else {
         hlsInstance = new Hls({
@@ -501,7 +515,9 @@ const handleNowPlayingUpdate = (np) => {
           console.log("HLS.js manifest parsed, attempting to play.");
           playVideoRobustly(video).catch(e => {
               console.error("Could not start HLS.js playback:", e);
-              if (!recoverSplash("HLS.js failed to start")) endSong("failed to start");
+              if (!handlePlaybackStartFailure(e, "HLS.js failed to start")) {
+                endSong("failed to start");
+              }
           });
         });
         hlsInstance.on(Hls.Events.ERROR, function (_event, data) {
@@ -525,7 +541,9 @@ const handleNowPlayingUpdate = (np) => {
       video.load();
       playVideoRobustly(video).catch(e => {
           console.error("Could not start video playback:", e);
-          if (!recoverSplash("video failed to start")) endSong("failed to start");
+          if (!handlePlaybackStartFailure(e, "video failed to start")) {
+            endSong("failed to start");
+          }
       });
     }
 

@@ -19,10 +19,18 @@ from pikaraoke.lib.karaoke_database import KaraokeDatabase
 
 DEEZER_SEARCH_URL = "https://api.deezer.com/search"
 MUSICBRAINZ_RECORDING_URL = "https://musicbrainz.org/ws/2/recording"
+MUSICBRAINZ_RELEASE_GROUP_URL = "https://musicbrainz.org/ws/2/release-group"
 CAA_RELEASE_GROUP_URL = "https://coverartarchive.org/release-group/{mbid}/front-500"
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
-MIN_MATCH_SCORE = 0.78
+MIN_MATCH_SCORE = 0.72
 USER_AGENT = "KaraoPi/1.0 (https://github.com/Micpi/KaraoPi)"
+
+_NOISE_RE = re.compile(
+    r"\b(?:karaoke|instrumental|lyrics?|paroles|official(?:\s+video)?|"
+    r"music\s+video|clip(?:\s+officiel)?|version|remaster(?:ed)?|hd|hq)\b",
+    re.IGNORECASE,
+)
+_BRACKET_RE = re.compile(r"[\[(]([^)\]]+)[)\]]")
 
 
 def _normalize(value: str) -> str:
@@ -30,18 +38,44 @@ def _normalize(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
 
 
+def _clean_identity_part(value: str) -> str:
+    """Remove common karaoke/video annotations without damaging the song identity."""
+    value = _BRACKET_RE.sub(
+        lambda match: "" if _NOISE_RE.search(match.group(1)) else f" {match.group(1)} ",
+        value,
+    )
+    value = _NOISE_RE.sub(" ", value)
+    return re.sub(r"\s+", " ", value).strip(" -–—_|")
+
+
+def _similarity(left: str, right: str) -> float:
+    left_normalized, right_normalized = _normalize(left), _normalize(right)
+    if not left_normalized or not right_normalized:
+        return 0.0
+    sequence = SequenceMatcher(None, left_normalized, right_normalized).ratio()
+    left_tokens, right_tokens = set(left_normalized.split()), set(right_normalized.split())
+    overlap = len(left_tokens & right_tokens) / max(1, min(len(left_tokens), len(right_tokens)))
+    return max(sequence, overlap)
+
+
 def _match_score(artist: str, title: str, candidate_artist: str, candidate_title: str) -> float:
-    artist_score = SequenceMatcher(None, _normalize(artist), _normalize(candidate_artist)).ratio()
-    title_score = SequenceMatcher(None, _normalize(title), _normalize(candidate_title)).ratio()
-    return artist_score * 0.45 + title_score * 0.55
+    artist_score = _similarity(
+        _clean_identity_part(artist), _clean_identity_part(candidate_artist)
+    )
+    title_score = _similarity(_clean_identity_part(title), _clean_identity_part(candidate_title))
+    # A title is more discriminating than an artist name, but require both to
+    # contribute so that popular cover versions are not selected accidentally.
+    if artist_score < 0.35 or title_score < 0.55:
+        return 0.0
+    return artist_score * 0.40 + title_score * 0.60
 
 
 def parse_song_identity(display_name: str) -> tuple[str, str] | None:
     """Parse the conventional 'artist - title' karaoke filename."""
-    parts = re.split(r"\s+[-–—]\s+", display_name, maxsplit=1)
+    parts = re.split(r"\s+(?:[-–—|])\s+|\s*[–—]\s*|\s+\|\s+", display_name, maxsplit=1)
     if len(parts) != 2 or not all(part.strip() for part in parts):
         return None
-    return parts[0].strip(), parts[1].strip()
+    return _clean_identity_part(parts[0]), _clean_identity_part(parts[1])
 
 
 class CoverArtManager:
@@ -135,19 +169,36 @@ class CoverArtManager:
             return artist, title
         return parse_song_identity(self._display_name_provider(song_path))
 
+    def _identity_candidates(self, song_path: str) -> list[tuple[str, str]]:
+        """Return metadata first, then both common filename conventions."""
+        candidates: list[tuple[str, str]] = []
+        artist, title = self._db.get_song_identity(song_path)
+        if artist and title:
+            candidates.append((_clean_identity_part(artist), _clean_identity_part(title)))
+        parsed = parse_song_identity(self._display_name_provider(song_path))
+        if parsed:
+            candidates.extend((parsed, (parsed[1], parsed[0])))
+        return list(dict.fromkeys(pair for pair in candidates if all(pair)))
+
     def _sync_song(self, song_path: str) -> None:
-        identity = self._song_identity(song_path)
-        if not identity:
+        identities = self._identity_candidates(song_path)
+        if not identities:
             display_name = self._display_name_provider(song_path)
             self._db.upsert_cover_art(song_path, "", display_name, "unresolved")
             self._progress["missing"] += 1
             return
 
-        artist, title = identity
-        candidates = self._deezer_candidates(artist, title)
-        candidates.extend(self._musicbrainz_candidates(artist, title))
+        candidates = []
+        for artist, title in identities:
+            candidates.extend(self._deezer_candidates(artist, title))
+        # MusicBrainz is intentionally a fallback: its public API permits one
+        # request/second, while Deezer usually resolves exact tracks immediately.
+        if not any(item["score"] >= MIN_MATCH_SCORE for item in candidates):
+            for artist, title in identities:
+                candidates.extend(self._musicbrainz_candidates(artist, title))
         candidates.sort(key=lambda item: item["score"], reverse=True)
         for candidate in (item for item in candidates if item["score"] >= MIN_MATCH_SCORE):
+            artist, title = candidate.get("identity", identities[0])
             try:
                 content, extension = self._download_image(candidate["url"])
                 digest = hashlib.sha256(
@@ -178,35 +229,43 @@ class CoverArtManager:
                     title,
                 )
 
+        artist, title = identities[0]
         self._db.upsert_cover_art(song_path, artist, title, "missing")
         self._progress["missing"] += 1
 
     def _deezer_candidates(self, artist: str, title: str) -> list[dict]:
         try:
-            response = requests.get(
-                DEEZER_SEARCH_URL,
-                params={"q": f'artist:"{artist}" track:"{title}"', "limit": 5},
-                headers={"User-Agent": USER_AGENT},
-                timeout=12,
-            )
-            response.raise_for_status()
             results = []
-            for item in response.json().get("data", []):
-                album = item.get("album") or {}
-                url = album.get("cover_xl") or album.get("cover_big")
-                if url:
-                    results.append(
-                        {
-                            "source": "deezer",
-                            "url": url,
-                            "score": _match_score(
-                                artist,
-                                title,
-                                (item.get("artist") or {}).get("name", ""),
-                                item.get("title_short") or item.get("title", ""),
-                            ),
-                        }
-                    )
+            seen_urls = set()
+            queries = (f'artist:"{artist}" track:"{title}"', f"{artist} {title}")
+            for query in queries:
+                response = requests.get(
+                    DEEZER_SEARCH_URL,
+                    params={"q": query, "limit": 12},
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=12,
+                )
+                response.raise_for_status()
+                for item in response.json().get("data", []):
+                    album = item.get("album") or {}
+                    url = album.get("cover_xl") or album.get("cover_big")
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        results.append(
+                            {
+                                "source": "deezer",
+                                "url": url,
+                                "score": _match_score(
+                                    artist,
+                                    title,
+                                    (item.get("artist") or {}).get("name", ""),
+                                    item.get("title_short") or item.get("title", ""),
+                                ),
+                                "identity": (artist, title),
+                            }
+                        )
+                if any(item["score"] >= MIN_MATCH_SCORE for item in results):
+                    break
             return results
         except (requests.RequestException, ValueError):
             logging.warning("Deezer cover lookup failed for %s - %s", artist, title)
@@ -247,11 +306,55 @@ class CoverArtManager:
                                 "source": "coverartarchive",
                                 "url": CAA_RELEASE_GROUP_URL.format(mbid=mbid),
                                 "score": score,
+                                "identity": (artist, title),
                             }
                         )
+            if not results:
+                results.extend(self._musicbrainz_release_group_candidates(artist, title))
             return results
         except (requests.RequestException, ValueError):
             logging.warning("MusicBrainz cover lookup failed for %s - %s", artist, title)
+            return []
+
+    def _musicbrainz_release_group_candidates(self, artist: str, title: str) -> list[dict]:
+        """Search albums/singles directly when recording results omit release data."""
+        elapsed = time.monotonic() - self._last_musicbrainz_request
+        if elapsed < 1.05:
+            time.sleep(1.05 - elapsed)
+        try:
+            response = requests.get(
+                MUSICBRAINZ_RELEASE_GROUP_URL,
+                params={
+                    "query": f'releasegroup:"{title}" AND artist:"{artist}"',
+                    "fmt": "json",
+                    "limit": 8,
+                },
+                headers={"User-Agent": USER_AGENT},
+                timeout=12,
+            )
+            self._last_musicbrainz_request = time.monotonic()
+            response.raise_for_status()
+            results = []
+            for group in response.json().get("release-groups", []):
+                credit = group.get("artist-credit") or []
+                candidate_artist = "".join(
+                    part.get("name", "") + part.get("joinphrase", "") for part in credit
+                )
+                mbid = group.get("id")
+                if mbid:
+                    results.append(
+                        {
+                            "source": "coverartarchive",
+                            "url": CAA_RELEASE_GROUP_URL.format(mbid=mbid),
+                            "score": _match_score(
+                                artist, title, candidate_artist, group.get("title", "")
+                            ),
+                            "identity": (artist, title),
+                        }
+                    )
+            return results
+        except (requests.RequestException, ValueError):
+            logging.warning("MusicBrainz release lookup failed for %s - %s", artist, title)
             return []
 
     def _download_image(self, url: str) -> tuple[bytes, str]:

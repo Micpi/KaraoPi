@@ -2144,6 +2144,163 @@ details > summary::-webkit-details-marker {
 .theme-swatch-aurora { background: linear-gradient(135deg, #10b981 50%, #a78bfa 50%); }
 .theme-swatch-sunset { background: linear-gradient(135deg, #f97360 50%, #fbbf24 50%); }
 .theme-swatch-graphite { background: linear-gradient(135deg, #64748b 50%, #e2e8f0 50%); }
+.theme-swatch-nordic { background: linear-gradient(135deg, #60a5fa 50%, #c4b5fd 50%); }
+.theme-swatch-sage { background: linear-gradient(135deg, #84cc9a 50%, #d6c79c 50%); }
+.theme-swatch-rose { background: linear-gradient(135deg, #f472b6 50%, #c4b5fd 50%); }
+.theme-swatch-arctic { background: linear-gradient(135deg, #38bdf8 50%, #e2e8f0 50%); }
+
+/* Global interface rhythm and icon alignment audit. */
+:where(.button, .navbar-item, .info-quick-nav a, .panel-block) {
+  align-items: center;
+  line-height: 1.25;
+}
+
+:where(.button, .navbar-item, .info-quick-nav a) > :where(i.icon, i[class^="icon-"], i[class*=" icon-"]),
+:where(.button, .navbar-item, .info-quick-nav a) .icon {
+  display: inline-flex;
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.button {
+  display: inline-flex;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 40px;
+  padding-inline: 1rem;
+  white-space: normal;
+  text-align: center;
+}
+
+.button.is-small {
+  min-height: 36px;
+  padding-inline: .8rem;
+}
+
+.card-header,
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.card-header :where(h2, h3, h4),
+.collapsible-header :where(h2, h3, h4) {
+  margin: 0 !important;
+  line-height: 1.25;
+  font-size: clamp(1rem, 2vw, 1.15rem);
+}
+
+.label {
+  line-height: 1.35;
+}
+
+.global-update-banner {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  color: var(--kp-text);
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--karaopi-primary) 18%, var(--kp-surface)),
+    var(--kp-surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--karaopi-primary) 45%, var(--kp-border));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .2);
+  backdrop-filter: blur(18px);
+}
+
+.global-update-banner[hidden] {
+  display: none;
+}
+
+.global-update-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: white;
+  background: var(--karaopi-primary);
+  border-radius: 11px;
+}
+
+.global-update-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.global-update-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+}
+
+.global-update-copy strong {
+  font-size: .92rem;
+}
+
+.global-update-copy small {
+  color: var(--kp-muted);
+  font-size: .76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-update-card {
+  scroll-margin-top: 90px;
+}
+
+@media (pointer: coarse) {
+  :where(.button, .navbar-item, .info-quick-nav a) {
+    min-height: 44px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .global-update-banner {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 9px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .global-update-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .global-update-banner .button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .global-update-banner .button .icon {
+    font-size: .9rem;
+  }
+
+  .global-update-copy strong {
+    font-size: .84rem;
+  }
+}
 
 /*
  * Definitive responsive navigation.

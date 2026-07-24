@@ -202,6 +202,38 @@ THEME_PRESETS = {
         "surface_2": "rgba(35, 40, 49, 0.86)",
         "navbar": "rgba(18, 21, 27, 0.94)",
     },
+    "nordic": {
+        "primary": "#60a5fa",
+        "secondary": "#c4b5fd",
+        "background": "#080d16",
+        "surface": "rgba(18, 27, 42, 0.92)",
+        "surface_2": "rgba(27, 39, 58, 0.86)",
+        "navbar": "rgba(11, 18, 30, 0.94)",
+    },
+    "sage": {
+        "primary": "#84cc9a",
+        "secondary": "#d6c79c",
+        "background": "#09110d",
+        "surface": "rgba(18, 35, 26, 0.92)",
+        "surface_2": "rgba(27, 47, 36, 0.86)",
+        "navbar": "rgba(12, 27, 19, 0.94)",
+    },
+    "rose": {
+        "primary": "#f472b6",
+        "secondary": "#c4b5fd",
+        "background": "#150b13",
+        "surface": "rgba(43, 20, 37, 0.92)",
+        "surface_2": "rgba(59, 28, 51, 0.86)",
+        "navbar": "rgba(34, 14, 29, 0.94)",
+    },
+    "arctic": {
+        "primary": "#38bdf8",
+        "secondary": "#e2e8f0",
+        "background": "#061016",
+        "surface": "rgba(13, 31, 40, 0.92)",
+        "surface_2": "rgba(21, 44, 55, 0.86)",
+        "navbar": "rgba(8, 24, 32, 0.94)",
+    },
 }
 
 

@@ -111,7 +111,9 @@
       // {# MSG: Confirmation dialog before rebooting the KaraoPi host system. #}
       confirmReboot: {{ _("Are you sure you want to reboot?") | tojson }},
       // {# MSG: Generic error prefix shown before an error message. #}
-      errorLabel: {{ _("Error") | tojson }}
+      errorLabel: {{ _("Error") | tojson }},
+      updateAvailable: {{ _("KaraoPi update available") | tojson }},
+      updateAction: {{ _("View update") | tojson }}
     };
 
     function generateRandomString(length) {
@@ -196,6 +198,14 @@
 
     $(function () {
       connectSocket();
+
+      {% if not blank_page %}
+      $.getJSON({{ url_for('info.update_status') | tojson }}, function(data) {
+        if (!data || !data.update_available) return;
+        $("#global-update-version").text(data.latest_version || "");
+        $("#global-update-banner").removeAttr("hidden");
+      });
+      {% endif %}
 
       $("#notification-close").click(function () {
         $(".notification").hide();
@@ -395,6 +405,24 @@
         </div>
       </div>
     </nav>
+
+    <aside id="global-update-banner" class="global-update-banner" role="region"
+      aria-labelledby="global-update-title" hidden>
+      <span class="global-update-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3v12m0 0 4-4m-4 4-4-4"></path>
+          <path d="M5 19h14"></path>
+        </svg>
+      </span>
+      <span class="global-update-copy">
+        <strong id="global-update-title">{% trans %}KaraoPi update available{% endtrans %}</strong>
+        <small id="global-update-version"></small>
+      </span>
+      <a class="button is-small is-primary no-spa" href="{{ url_for('info.info') }}#info-update">
+        <span>{% trans %}View update{% endtrans %}</span>
+        <i class="icon icon-right-big" aria-hidden="true"></i>
+      </a>
+    </aside>
 
     {% if get_flashed_messages() %}
     {% for category, message in get_flashed_messages(with_categories=true) %}

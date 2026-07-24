@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import zipfile
 
@@ -28,6 +29,9 @@ GITHUB_API_HEADERS = {
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "KaraoPi-Updater",
 }
+UPDATE_CHECK_CACHE_SECONDS = 6 * 60 * 60
+_release_status_cache = {}
+_release_status_lock = threading.Lock()
 
 
 class AppUpdateError(RuntimeError):
@@ -159,6 +163,23 @@ def get_release_update_status(current_version, repository=DEFAULT_REPOSITORY):
         "zipball_url": latest_release["zipball_url"],
         "update_available": update_available,
     }
+
+
+def get_cached_release_update_status(
+    current_version, repository=DEFAULT_REPOSITORY, max_age=UPDATE_CHECK_CACHE_SECONDS
+):
+    """Return release status without querying GitHub on every page or client."""
+    cache_key = (str(current_version), repository)
+    now = time.monotonic()
+    with _release_status_lock:
+        cached = _release_status_cache.get(cache_key)
+        if cached and now - cached["checked_at"] < max_age:
+            return cached["status"]
+
+    status = get_release_update_status(current_version, repository=repository)
+    with _release_status_lock:
+        _release_status_cache[cache_key] = {"checked_at": now, "status": status}
+    return status
 
 
 def get_pending_update_marker_path(app_root):

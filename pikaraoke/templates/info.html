@@ -183,6 +183,14 @@
 			$(this).next(".collapsible-content").slideToggle(200);
 		});
 
+		// A global update banner links here directly. Reveal the destination
+		// instead of landing on a collapsed card.
+		if (window.location.hash === "#info-update") {
+			var $updateCard = $("#info-update");
+			$updateCard.find(".collapsible-header").removeClass("is-collapsed");
+			$updateCard.find(".collapsible-content").show();
+		}
+
 			function serializePhrases(textareaValue) {
 				return textareaValue.split("\n").map(s => s.trim().replace(/[|]/g, "")).filter(s => s).join("|");
 			}
@@ -886,7 +894,7 @@
 			</div>
 		</div>
 
-		<div class="card">
+		<div id="info-update" class="card info-update-card">
 			<header class="card-header py-3 px-5 collapsible-header is-collapsed">
 				{# MSG: Label for the KaraoPi self-update section #}
 				<h3 class="title mb-0">{% trans %}KaraoPi update{% endtrans %}</h3>
@@ -965,6 +973,10 @@
 								<option value="aurora" {% if interface_theme == "aurora" %}selected{% endif %}>{% trans %}Northern lights{% endtrans %}</option>
 								<option value="sunset" {% if interface_theme == "sunset" %}selected{% endif %}>{% trans %}Modern sunset{% endtrans %}</option>
 								<option value="graphite" {% if interface_theme == "graphite" %}selected{% endif %}>{% trans %}Graphite minimal{% endtrans %}</option>
+								<option value="nordic" {% if interface_theme == "nordic" %}selected{% endif %}>{% trans %}Nordic frost{% endtrans %}</option>
+								<option value="sage" {% if interface_theme == "sage" %}selected{% endif %}>{% trans %}Soft sage{% endtrans %}</option>
+								<option value="rose" {% if interface_theme == "rose" %}selected{% endif %}>{% trans %}Rose quartz{% endtrans %}</option>
+								<option value="arctic" {% if interface_theme == "arctic" %}selected{% endif %}>{% trans %}Arctic blue{% endtrans %}</option>
 							</select>
 						</div>
 						<div class="theme-swatches" aria-hidden="true">
@@ -973,6 +985,10 @@
 							<span class="theme-swatch theme-swatch-aurora"></span>
 							<span class="theme-swatch theme-swatch-sunset"></span>
 							<span class="theme-swatch theme-swatch-graphite"></span>
+							<span class="theme-swatch theme-swatch-nordic"></span>
+							<span class="theme-swatch theme-swatch-sage"></span>
+							<span class="theme-swatch theme-swatch-rose"></span>
+							<span class="theme-swatch theme-swatch-arctic"></span>
 						</div>
 					</div>
 					<p class="is-size-7 has-text-grey">{% trans %}The selected theme is applied to the complete web interface after saving.{% endtrans %}</p>

@@ -16,12 +16,28 @@ from pikaraoke.lib.current_app import (
     is_admin,
 )
 from pikaraoke.lib.get_platform import get_platform, is_linux
-from pikaraoke.lib.karaopi_release import DEFAULT_REPOSITORY, get_release_update_status
+from pikaraoke.lib.karaopi_release import DEFAULT_REPOSITORY, get_cached_release_update_status
 
 _ = flask_babel.gettext
 
 
 info_bp = Blueprint("info", __name__)
+
+
+@info_bp.route("/info/update-status")
+def update_status():
+    """Lightweight global update status used by the persistent banner."""
+    try:
+        status = get_cached_release_update_status(VERSION, repository=DEFAULT_REPOSITORY)
+        return jsonify(
+            {
+                "update_available": status["update_available"],
+                "latest_version": status["latest_tag"],
+            }
+        )
+    except Exception as exc:
+        logging.debug("Unable to refresh global update status: %s", exc)
+        return jsonify({"update_available": False}), 200
 
 
 @info_bp.route("/info")
@@ -41,7 +57,7 @@ def info():
     release_update = None
     release_update_error = None
     try:
-        release_update = get_release_update_status(VERSION, repository=DEFAULT_REPOSITORY)
+        release_update = get_cached_release_update_status(VERSION, repository=DEFAULT_REPOSITORY)
     except Exception as exc:
         release_update_error = str(exc)
         logging.warning("Unable to load KaraoPi release information: %s", exc)
