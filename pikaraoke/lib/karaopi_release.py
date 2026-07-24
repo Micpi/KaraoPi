@@ -29,7 +29,9 @@ GITHUB_API_HEADERS = {
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "KaraoPi-Updater",
 }
-UPDATE_CHECK_CACHE_SECONDS = 6 * 60 * 60
+# Keep global page loads inexpensive without hiding newly published releases
+# for hours. The Info page explicitly bypasses this cache.
+UPDATE_CHECK_CACHE_SECONDS = 5 * 60
 _release_status_cache = {}
 _release_status_lock = threading.Lock()
 
