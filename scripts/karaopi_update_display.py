@@ -123,15 +123,23 @@ def run_tk_display(status_file, logo_path):
         return None
 
     root.configure(bg="#07090f")
-    root.attributes("-fullscreen", True)
-    root.attributes("-topmost", True)
     root.overrideredirect(True)
+    root.update_idletasks()
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    root.geometry(f"{screen_width}x{screen_height}+0+0")
+    root.minsize(screen_width, screen_height)
+    for attribute in ("-fullscreen", "-zoomed", "-topmost"):
+        try:
+            root.attributes(attribute, True)
+        except tk.TclError:
+            pass
     root.lift()
 
     card = tk.Frame(
         root,
-        width=520,
-        height=410,
+        width=420,
+        height=360,
         bg="#121520",
         highlightbackground="#343744",
         highlightthickness=1,
@@ -143,45 +151,45 @@ def run_tk_display(status_file, logo_path):
     if logo_path and os.path.isfile(logo_path):
         try:
             logo_image = tk.PhotoImage(file=logo_path)
-            scale = max(1, max(logo_image.width(), logo_image.height()) // 104)
+            scale = max(1, round(max(logo_image.width(), logo_image.height()) / 92))
             if scale > 1:
                 logo_image = logo_image.subsample(scale, scale)
-            tk.Label(card, image=logo_image, bg="#121520").pack(pady=(34, 10))
+            tk.Label(card, image=logo_image, bg="#121520").pack(pady=(30, 8))
         except tk.TclError:
             logo_image = None
 
     tk.Label(
         card,
         text="KaraoPi",
-        font=("DejaVu Sans", 30, "bold"),
+        font=("DejaVu Sans", 24, "bold"),
         fg="#ffffff",
         bg="#121520",
-    ).pack(pady=(4 if logo_image else 72, 4))
+    ).pack(pady=(2 if logo_image else 62, 3))
 
     state_label = tk.Label(
         card,
         text="PREPARING THE KARAOKE EXPERIENCE",
-        font=("DejaVu Sans", 10, "bold"),
+        font=("DejaVu Sans", 9, "bold"),
         fg="#8b5cf6",
         bg="#121520",
     )
-    state_label.pack(pady=(2, 12))
+    state_label.pack(pady=(2, 9))
 
     message_label = tk.Label(
         card,
         text="Starting KaraoPi system services",
-        font=("DejaVu Sans", 12),
+        font=("DejaVu Sans", 10),
         fg="#aeb4c5",
         bg="#121520",
-        wraplength=430,
+        wraplength=350,
         justify="center",
     )
-    message_label.pack(pady=(0, 20))
+    message_label.pack(pady=(0, 15))
 
-    track = tk.Canvas(card, width=360, height=8, bg="#121520", highlightthickness=0)
+    track = tk.Canvas(card, width=280, height=6, bg="#121520", highlightthickness=0)
     track.pack()
-    track.create_rectangle(0, 1, 360, 7, fill="#2d3244", outline="")
-    progress_bar = track.create_rectangle(0, 1, 1, 7, fill="#8b5cf6", outline="")
+    track.create_rectangle(0, 1, 280, 5, fill="#2d3244", outline="")
+    progress_bar = track.create_rectangle(0, 1, 1, 5, fill="#8b5cf6", outline="")
 
     percent_label = tk.Label(
         card,
@@ -214,7 +222,7 @@ def run_tk_display(status_file, logo_path):
             }
             state_label.configure(text=labels.get(state, state.replace("_", " ").upper()))
             message_label.configure(text=str(status.get("message") or "Preparing KaraoPi"))
-            track.coords(progress_bar, 0, 1, max(3, int(3.6 * progress)), 7)
+            track.coords(progress_bar, 0, 1, max(3, int(2.8 * progress)), 5)
             progress_bar_color = "#22d3ee" if progress >= 100 else "#8b5cf6"
             track.itemconfigure(progress_bar, fill=progress_bar_color)
             percent_label.configure(text=f"{progress}%")

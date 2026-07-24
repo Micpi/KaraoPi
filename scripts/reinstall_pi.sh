@@ -20,6 +20,15 @@ fi
 REPO_URL="https://github.com/Micpi/KaraoPi.git"
 INSTALL_DIR="${1:-/home/pi/KaraoPi}"
 SEARCH_ROOTS=("/home" "/opt" "/root" "/usr/local")
+SAFE_WORK_DIR="${HOME:-/tmp}"
+
+# The script is commonly launched from inside the installation it replaces.
+# Move out before any deletion: an open shell script can continue executing
+# after its directory is removed, but Git cannot resolve a deleted cwd.
+if [ ! -d "$SAFE_WORK_DIR" ]; then
+  SAFE_WORK_DIR="/tmp"
+fi
+cd "$SAFE_WORK_DIR"
 
 echo "*** STOPPING ANY RUNNING KARAOPI PROCESS ***"
 pkill -f "pikaraoke.app" 2>/dev/null || true

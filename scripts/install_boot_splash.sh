@@ -60,6 +60,21 @@ for stage_name in stage.jpg stage.jpeg; do
   fi
 done
 
+# Raspberry Pi OS releases have moved stage.jpg between packages and theme
+# directories. Replace only files with that exact boot-stage name, keep a
+# recoverable backup beside each one, and leave unrelated wallpapers alone.
+while IFS= read -r stage_path; do
+  [ -n "$stage_path" ] || continue
+  if [ ! -e "$stage_path.karaopi-backup" ] && [ ! -L "$stage_path" ]; then
+    cp "$stage_path" "$stage_path.karaopi-backup"
+  fi
+  ln -sf "$BOOT_STAGE_SOURCE" "$stage_path"
+  echo "Replaced Raspberry Pi boot stage: $stage_path"
+done < <(
+  find /usr/share/plymouth /usr/share/rpd-wallpaper /usr/share/backgrounds \
+    -type f \( -iname "stage.jpg" -o -iname "stage.jpeg" \) 2>/dev/null
+)
+
 echo "*** Installing a systemd watcher to refresh the boot image automatically ***"
 cat > /etc/systemd/system/karaopi-boot-splash.service <<EOF
 [Unit]
